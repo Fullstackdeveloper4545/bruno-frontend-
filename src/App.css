@@ -1,0 +1,47 @@
+.hero-bg{
+  background-image: url("./assets/hero-bg.jpg");
+  background-size: 100% 100%;
+  background-position: center; 
+
+  background-repeat: no-repeat;
+
+}
+
+.mySwiper{
+  padding:20px;
+}
+
+.ana-dias-swiper{
+  padding:50px;
+
+}
+
+
+/* .mySwiper .swiper-pagination{
+  bottom: -12px;
+} */
+
+.mySwiper .swiper-button-next,
+.mySwiper .swiper-button-prev{
+  color: #000;
+}
+
+.ana-dias-swiper .swiper-button-next,
+.ana-dias-swiper .swiper-button-prev{
+  color: #000;
+}
+
+.category-card-bg{
+  background-image: url("./assets/sneakers.jpg");
+  background-size: 100% 100%;
+  background-position: center; 
+  background-repeat: no-repeat;
+}
+
+.promo-bg{
+  background-image: url("./assets/sneakers-1.jpg");
+  background-size: cover;
+  background-position: 75% 65%;
+  background-repeat: no-repeat;
+}
+
