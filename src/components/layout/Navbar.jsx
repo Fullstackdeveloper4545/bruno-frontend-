@@ -1,12 +1,33 @@
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import logo from '../../assets/Logo.png'
 import { Search, User, ShoppingCart, Menu, X } from 'lucide-react'
 import { cartEvents, getCartCount } from '../../lib/cart'
+import { getJson } from '../../lib/api'
+
+const fallbackCategories = [
+    { id: 'fallback-1', title: 'Sapatilhas' },
+    { id: 'fallback-2', title: 'Roupa' },
+    { id: 'fallback-3', title: 'Relogios GPS' },
+    { id: 'fallback-4', title: 'Equipamento de Corrida' },
+    { id: 'fallback-5', title: 'Nutricao Desportiva' },
+    { id: 'fallback-6', title: 'Hyrox' },
+]
+
+function buildCategoryLink(category, index) {
+    const categoryId = category?.id != null ? String(category.id) : `category-${index}`
+    const categoryTitle = category?.name_pt || category?.name_es || category?.slug || `Categoria ${index + 1}`
+    return {
+        id: categoryId,
+        title: categoryTitle,
+        to: `/products?categoryId=${encodeURIComponent(categoryId)}&categoryName=${encodeURIComponent(categoryTitle)}`,
+    }
+}
 
 const Navbar = () => {
     const [open, setOpen] = useState(false)
     const [cartCount, setCartCount] = useState(0)
+    const [categories, setCategories] = useState([])
 
     useEffect(() => {
         const syncCartCount = () => setCartCount(getCartCount())
@@ -18,6 +39,42 @@ const Navbar = () => {
             window.removeEventListener(cartEvents.updated, syncCartCount)
         }
     }, [])
+
+    useEffect(() => {
+        let active = true
+
+        const loadCategories = async () => {
+            try {
+                const response = await getJson('/api/catalog/categories')
+                if (!active || !Array.isArray(response)) return
+
+                const nextCategories = response
+                    .filter((category) => category?.is_active !== false)
+                    .sort((a, b) => {
+                        const left = Number(b?.product_count || 0)
+                        const right = Number(a?.product_count || 0)
+                        return left - right
+                    })
+                    .slice(0, 8)
+                    .map(buildCategoryLink)
+
+                setCategories(nextCategories)
+            } catch {
+                if (!active) return
+                setCategories([])
+            }
+        }
+
+        void loadCategories()
+
+        return () => {
+            active = false
+        }
+    }, [])
+
+    const navCategories = useMemo(() => {
+        return categories.length > 0 ? categories : fallbackCategories.map(buildCategoryLink)
+    }, [categories])
 
     return (
         <>
@@ -55,15 +112,12 @@ const Navbar = () => {
                             {open ? <X /> : <Menu />}
                         </button>
                     </div>
-                    <div className='hidden md:flex justify-center gap-8 py-6 border-t border-gray-300'>
-                        <Link to='/sapatilhas' className='focus:text-red-500'>Sapatilhas</Link>
-                        <Link to='/roupa' className='focus:text-red-500'>Roupa</Link>
-                        <Link to='/relogios-gps' className='focus:text-red-500'>Relogios GPS</Link>
-                        <Link to='/equipamento-corrida' className='focus:text-red-500'>Equipamento de Corrida</Link>
-                        <Link to='/nutricao-desportiva' className='focus:text-red-500'>Nutricao Desportiva</Link>
-                        <Link to='/hyrox' className='focus:text-red-500'>Hyrox</Link>
-                        <Link to='/marcas' className='focus:text-red-500'>Marcas</Link>
-                        <Link to='/saldos' className='focus:text-red-500'>Saldos</Link>
+                    <div className='hidden md:flex flex-wrap justify-center gap-x-8 gap-y-3 py-6 border-t border-gray-300 px-6'>
+                        {navCategories.map((category) => (
+                            <Link key={category.id} to={category.to} className='focus:text-red-500 whitespace-nowrap'>
+                                {category.title}
+                            </Link>
+                        ))}
                     </div>
 
                     {open && (
@@ -90,14 +144,11 @@ const Navbar = () => {
                                     Categorias
                                 </summary>
                                 <div className='mt-3 flex flex-col gap-3'>
-                                    <Link to='/sapatilhas' onClick={() => setOpen(false)}>Sapatilhas</Link>
-                                    <Link to='/roupa' onClick={() => setOpen(false)}>Roupa</Link>
-                                    <Link to='/relogios-gps' onClick={() => setOpen(false)}>Relogios GPS</Link>
-                                    <Link to='/equipamento-corrida' onClick={() => setOpen(false)}>Equipamento de Corrida</Link>
-                                    <Link to='/nutricao-desportiva' onClick={() => setOpen(false)}>Nutricao Desportiva</Link>
-                                    <Link to='/hyrox' onClick={() => setOpen(false)}>Hyrox</Link>
-                                    <Link to='/marcas' onClick={() => setOpen(false)}>Marcas</Link>
-                                    <Link to='/saldos' onClick={() => setOpen(false)}>Saldos</Link>
+                                    {navCategories.map((category) => (
+                                        <Link key={category.id} to={category.to} onClick={() => setOpen(false)}>
+                                            {category.title}
+                                        </Link>
+                                    ))}
                                 </div>
                             </details>
                         </div>
