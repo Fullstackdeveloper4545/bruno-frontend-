@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Eye, EyeOff } from "lucide-react";
-import { useAdminAuth } from "@/contexts/AdminAuthContext";
+import { useAdminAuth, ADMIN_EMAIL } from "@/contexts/AdminAuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -9,7 +9,7 @@ import { adminApi } from "@/lib/adminApi";
 const AdminLogin = () => {
   const navigate = useNavigate();
   const { login } = useAdminAuth();
-  const [email, setEmail] = useState("");
+  const [email, setEmail] = useState(ADMIN_EMAIL);
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState("");
@@ -27,7 +27,7 @@ const AdminLogin = () => {
   };
   const handleSubmit = async (event) => {
     event.preventDefault();
-    const success = login(email.trim(), password.trim());
+    const success = await login(email.trim(), password.trim());
     if (success) {
       setError("");
       // Fire-and-forget audit log; ignore errors so login flow is not blocked.
@@ -57,10 +57,10 @@ const AdminLogin = () => {
           <form className="space-y-4" onSubmit={handleSubmit}>
             <div className="space-y-2">
               <label className="text-sm font-medium">Email do administrador</label>
-              <Input
+                <Input
     value={email}
     onChange={(event) => setEmail(event.target.value)}
-    placeholder="username@gmail.com"
+    placeholder="admin123ecom@gmail.com"
     type="email"
     required
   />

@@ -1,6 +1,7 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { postJson } from "@/lib/api";
+
 const ADMIN_EMAIL = "admin123ecom@gmail.com";
-const ADMIN_PASSWORD = "admin123@";
 const STORAGE_KEY = "admin:auth:session";
 const UNLOAD_MARKER_KEY = "admin:auth:unload";
 const getNavigationType = () => {
@@ -38,23 +39,44 @@ const AdminAuthProvider = ({ children }) => {
     window.addEventListener("beforeunload", markUnload);
     return () => window.removeEventListener("beforeunload", markUnload);
   }, []);
-  const login = (email, password) => {
-    const success = email === ADMIN_EMAIL && password === ADMIN_PASSWORD;
-    setIsAdmin(success);
-    if (typeof window !== "undefined") {
-      if (success) {
-        window.sessionStorage.removeItem(UNLOAD_MARKER_KEY);
-        window.sessionStorage.setItem(STORAGE_KEY, "true");
-        window.sessionStorage.setItem("admin:email", email.trim());
-        window.localStorage.setItem("admin:email", email.trim());
-      } else {
+  const login = async (email, password) => {
+    const normalizedEmail = String(email || "").trim().toLowerCase();
+    const normalizedPassword = String(password || "");
+
+    if (normalizedEmail !== ADMIN_EMAIL) {
+      if (typeof window !== "undefined") {
         window.sessionStorage.removeItem(UNLOAD_MARKER_KEY);
         window.sessionStorage.removeItem(STORAGE_KEY);
         window.sessionStorage.removeItem("admin:email");
         window.localStorage.removeItem("admin:email");
       }
+      setIsAdmin(false);
+      return false;
     }
-    return success;
+
+    try {
+      await postJson("/api/auth/login", {
+        email: normalizedEmail,
+        password: normalizedPassword,
+      });
+      setIsAdmin(true);
+      if (typeof window !== "undefined") {
+        window.sessionStorage.removeItem(UNLOAD_MARKER_KEY);
+        window.sessionStorage.setItem(STORAGE_KEY, "true");
+        window.sessionStorage.setItem("admin:email", normalizedEmail);
+        window.localStorage.setItem("admin:email", normalizedEmail);
+      }
+      return true;
+    } catch {
+      if (typeof window !== "undefined") {
+        window.sessionStorage.removeItem(UNLOAD_MARKER_KEY);
+        window.sessionStorage.removeItem(STORAGE_KEY);
+        window.sessionStorage.removeItem("admin:email");
+        window.localStorage.removeItem("admin:email");
+      }
+      setIsAdmin(false);
+      return false;
+    }
   };
   const logout = () => {
     setIsAdmin(false);
