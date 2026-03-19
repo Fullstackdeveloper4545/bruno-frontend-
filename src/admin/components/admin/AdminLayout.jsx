@@ -10,6 +10,7 @@ import {
   ChevronDown,
   CreditCard,
   Languages,
+  LayoutTemplate,
   LayoutDashboard,
   ListFilter,
   LogOut,
@@ -23,7 +24,9 @@ import {
   Store,
   Tags,
   Truck,
-  Users
+  Users,
+  Menu,
+  X
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -131,6 +134,7 @@ const navSections = [
     items: [
       { title: "Integrações", to: "/admin/integrations", icon: Plug },
       { title: "Traduções", to: "/admin/languages", icon: Languages },
+      { title: "Themes", to: "/admin/layouts", icon: LayoutTemplate },
       { title: "Definições", to: "/admin/settings", icon: Settings },
       { title: "Blog", to: "/admin/blogs", icon: BookOpen },
       { title: "Segurança", to: "/admin/security", icon: ShieldCheck }
@@ -167,9 +171,13 @@ const AdminLayout = () => {
   const [notificationsLoading, setNotificationsLoading] = useState(true);
   const [notificationsError, setNotificationsError] = useState("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isMobileSidebarOpen, setIsMobileSidebarOpen] = useState(false);
   const [integrationBadgeLabel, setIntegrationBadgeLabel] = useState("Integração ativa");
   const [modulesState, setModulesState] = useState({});
   const [adminName, setAdminName] = useState("User");
+  useEffect(() => {
+    setIsMobileSidebarOpen(false);
+  }, [location.pathname]);
   const orderTrackingRef = useRef({
     initialized: false,
     orderIds: /* @__PURE__ */ new Set(),
@@ -377,7 +385,63 @@ const AdminLayout = () => {
   );
   return <SidebarProvider open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
     <div className="flex h-svh w-full items-stretch overflow-hidden">
-      <Sidebar className="z-50 h-svh border-r border-border/60 bg-sidebar text-sidebar-foreground" collapsible="icon" variant="inset">
+      {isMobileSidebarOpen ? <div className="fixed inset-0 z-[70] md:hidden">
+        <button type="button" aria-label="Close sidebar" className="absolute inset-0 bg-black/50" onClick={() => setIsMobileSidebarOpen(false)} />
+        <aside className="relative z-[71] flex h-full w-[85vw] max-w-80 flex-col border-r border-border/60 bg-sidebar text-sidebar-foreground shadow-xl">
+          <SidebarHeader>
+            <div className="flex items-center justify-between px-1 pb-2">
+              <p className="text-xs font-semibold uppercase tracking-[0.2em] text-sidebar-foreground/80">Menu</p>
+              <Button variant="ghost" size="icon" onClick={() => setIsMobileSidebarOpen(false)} aria-label="Close menu">
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+            <div className="flex flex-col gap-3 rounded-xl border border-primary/25 bg-white p-3 shadow-sm backdrop-blur transition-all">
+              <div className="flex items-center gap-3">
+                <div className="flex h-11 w-11 items-center justify-center rounded-xl bg-primary text-primary-foreground shadow-sm ring-1 ring-white/30">
+                  <Sparkles className="h-5 w-5" />
+                </div>
+                <div className="leading-tight">
+                  <p className="text-[16px] uppercase tracking-[0.26em] text-primary/80">BACKOFFICE</p>
+                  <img src={logo} alt="Logo" className="h-8 w-auto object-contain" />
+                </div>
+              </div>
+              <Badge variant="secondary" className="inline-flex w-fit items-center gap-2 rounded-full bg-white/90 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
+                <span className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_0_4px_rgba(16,185,129,0.15)]" />
+                Online
+              </Badge>
+            </div>
+          </SidebarHeader>
+          <SidebarContent>
+            {visibleNavSections.map((section, sectionIndex) => <SidebarGroup key={section.label}>
+              <SidebarGroupLabel className="text-sidebar-foreground/80">{section.label}</SidebarGroupLabel>
+              <SidebarGroupContent>
+                <SidebarMenu>
+                  {section.items.map((item) => <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton
+                      asChild
+                      isActive={isActive(item.to)}
+                      tooltip={item.title}
+                      className={cn(
+                        isActive(item.to) && "bg-sidebar-accent font-semibold",
+                        item.nested && "pl-8 text-[13px] opacity-90"
+                      )}
+                    >
+                      <NavLink to={item.to} onClick={() => setIsMobileSidebarOpen(false)}>
+                        <item.icon className="h-4 w-4" />
+                        <span>{item.title}</span>
+                      </NavLink>
+                    </SidebarMenuButton>
+                    {item.badge ? <SidebarMenuBadge>{item.badge}</SidebarMenuBadge> : null}
+                  </SidebarMenuItem>)}
+                </SidebarMenu>
+              </SidebarGroupContent>
+              {/* {sectionIndex < visibleNavSections.length - 1 ? <SidebarSeparator /> : null} */}
+            </SidebarGroup>)}
+          </SidebarContent>
+        </aside>
+      </div> : null}
+
+      <Sidebar className="hidden md:flex z-50 h-svh border-r border-border/60 bg-sidebar text-sidebar-foreground" collapsible="icon" variant="inset">
         <SidebarHeader>
           <div className="flex flex-col gap-3 rounded-xl border border-primary/25 bg-white p-3 shadow-sm backdrop-blur transition-all group-data-[collapsible=icon]:items-center group-data-[collapsible=icon]:gap-2 group-data-[collapsible=icon]:p-2">
             <div className="flex items-center gap-3 group-data-[collapsible=icon]:justify-center">
@@ -410,7 +474,7 @@ const AdminLayout = () => {
                       item.nested && "pl-8 text-[13px] opacity-90"
                     )}
                   >
-                    <NavLink to={item.to}>
+                    <NavLink to={item.to} onClick={() => setIsMobileSidebarOpen(false)}>
                       <item.icon className="h-4 w-4" />
                       <span className="group-data-[collapsible=icon]:hidden">{item.title}</span>
                     </NavLink>
@@ -424,13 +488,19 @@ const AdminLayout = () => {
         </SidebarContent>
         
       </Sidebar>
-      <SidebarRail />
+      <SidebarRail className="hidden md:block" />
       <SidebarInset className="min-w-0 h-svh overflow-hidden bg-[#f2f5f5]">
         <div className="relative z-10 flex h-full min-h-0 flex-col">
-          <header className="sticky top-0 z-20 border-b border-primary/30 bg-[#6C939B] text-primary-foreground shadow-sm">
+          <header className="sticky top-0 z-20 border-b border-primary/30 bg-primary text-primary-foreground shadow-sm">
             <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-3 lg:px-8">
               <div className="flex items-center gap-3">
-            
+                <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsMobileSidebarOpen(true)} aria-label="Open menu">
+                  <Menu className="h-5 w-5" />
+                </Button>
+                <SidebarTrigger className="hidden md:inline-flex" aria-label="Toggle sidebar">
+                  <Menu className="h-4 w-4" />
+                </SidebarTrigger>
+             
                 <div className="leading-tight">
                   <p className="text-[16px] uppercase tracking-[0.2em] text-white/80 mb-1">VISÃO DE ADMINISTRADOR</p>
                   <p className="font-display text-[14px] text-white">anadias.run</p>

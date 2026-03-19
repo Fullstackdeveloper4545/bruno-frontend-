@@ -84,7 +84,7 @@ const ContactPage = () => {
           </div>
         </section>
 
-        <section className='w-full grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-9 lg:gap-[80px] px-5 sm:px-8 lg:px-20 py-[46px] sm:py-[60px] lg:py-[70px] bg-[#6c939b] text-white'>
+        <section className='w-full grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-9 lg:gap-[80px] px-5 sm:px-8 lg:px-20 py-[46px] sm:py-[60px] lg:py-[70px] bg-primary text-primary-foreground'>
           <div>
             <h2 className='m-0 text-[36px] sm:text-[44px] lg:text-[54px] leading-[1.2] sm:leading-[1.41] tracking-[0.05em] font-normal'>
               TEM DUVIDAS

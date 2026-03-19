@@ -412,7 +412,7 @@ function ProductDetailsPage() {
                       key={size}
                       type='button'
                       onClick={() => setSelectedSize(size)}
-                      className={`border py-2 ${selectedSize === size ? 'border-black bg-black text-white' : 'border-black/10 focus:bg-black focus:text-white focus:border-black'}`}
+                      className={`border py-2 ${selectedSize === size ? 'border-primary bg-primary text-primary-foreground' : 'border-black/10 focus:bg-primary focus:text-primary-foreground focus:border-primary'}`}
                     >
                       {size}
                     </button>
@@ -463,7 +463,7 @@ function ProductDetailsPage() {
             </div>
 
             <button
-              className='mt-4 w-full bg-black text-white py-3 text-[12px] tracking-[2px]'
+              className='mt-4 w-full bg-primary text-primary-foreground py-3 text-[12px] tracking-[2px]'
               onClick={handleAddToCart}
               type='button'
             >

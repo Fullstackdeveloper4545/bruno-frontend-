@@ -83,6 +83,14 @@ export const adminApi = {
     putJson(`/api/system/modules/${moduleKey}`, { enabled }),
   getGeneralSettings: () => getJson('/api/system/general-settings'),
   setGeneralSettings: (payload: unknown) => putJson('/api/system/general-settings', payload),
+  getThemeSettings: () => getJson('/api/system/theme'),
+  setThemeSettings: (payload: unknown) => putJson('/api/system/theme', payload),
+  listPublicThemes: () => getJson('/api/system/public-themes'),
+  getPublicTheme: (id: string) => getJson(`/api/system/public-themes/${id}`),
+  createPublicTheme: (payload: unknown) => postJson('/api/system/public-themes', payload),
+  updatePublicTheme: (id: string, payload: unknown) => putJson(`/api/system/public-themes/${id}`, payload),
+  deletePublicTheme: (id: string) => deleteJson(`/api/system/public-themes/${id}`),
+  applyPublicTheme: (id: string) => putJson(`/api/system/public-themes/${id}/apply`, {}),
 
   listBlogPosts: () => getJson('/api/blog/admin'),
   createBlogPost: (payload: unknown) => postJson('/api/blog/admin', payload),
@@ -100,5 +108,4 @@ export const adminApi = {
     postJson('/api/auth/change-password', payload),
 
   requestCustomerPasswordResetOtp: (email: string) => postJson('/api/auth/forgot-password/request', { email }),
-  deactivateCustomerAccount: (email: string) => postJson('/api/auth/customers/deactivate', { email }),
 };

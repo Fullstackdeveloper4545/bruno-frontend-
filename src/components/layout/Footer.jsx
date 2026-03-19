@@ -2,7 +2,7 @@ import React from 'react'
 
 function Footer() {
   return (
-    <footer className='bg-black text-white mt-[10vh]'>
+    <footer className='bg-primary text-primary-foreground mt-[10vh]'>
       <div className='w-[90vw] mx-auto py-12'>
         <div className='flex flex-wrap gap-y-10'>
           <div className='w-full md:w-1/4'>
@@ -41,12 +41,12 @@ function Footer() {
                 placeholder='Email'
                 className='w-full bg-white text-black text-[14px] px-4 py-4 outline-none'
               />
-              <button className='bg-[#7A97A1] px-5 text-white'>→</button>
+              <button className='bg-primary-foreground px-5 text-primary'>→</button>
             </div>
           </div>
         </div>
 
-        <div className='border-t border-white/10 mt-10 pt-6 flex flex-wrap items-center justify-between text-[11px]'>
+        <div className='border-t border-primary-foreground/20 mt-10 pt-6 flex flex-wrap items-center justify-between text-[11px]'>
           <span>© 2026 All Rights Reserved</span>
           <div className='flex gap-6'>
             <span>Política de Privacidade</span>

@@ -383,7 +383,7 @@ function ProductsPage() {
               <div className='mt-4 flex flex-col gap-3 text-[13px]'>
                 <Link
                   to='/products'
-                  className={`rounded-full px-3 py-2 transition ${!selectedCategoryId ? 'bg-black text-white' : 'bg-black/[0.04] hover:bg-black/[0.07]'}`}
+                  className={`rounded-full px-3 py-2 transition ${!selectedCategoryId ? 'bg-primary text-primary-foreground' : 'bg-black/[0.04] hover:bg-black/[0.07]'}`}
                 >
                   Todos os produtos
                 </Link>
@@ -392,7 +392,7 @@ function ProductsPage() {
                     key={category.id}
                     to={category.to}
                     className={`rounded-full px-3 py-2 transition ${
-                      selectedCategoryId === category.id ? 'bg-black text-white' : 'bg-black/[0.04] hover:bg-black/[0.07]'
+                      selectedCategoryId === category.id ? 'bg-primary text-primary-foreground' : 'bg-black/[0.04] hover:bg-black/[0.07]'
                     }`}
                   >
                     {category.name}

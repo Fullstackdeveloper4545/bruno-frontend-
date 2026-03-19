@@ -309,14 +309,14 @@ const CheckoutPage = () => {
                 <div className='mt-3 grid grid-cols-1 sm:grid-cols-2 gap-4'>
                   <button
                     type='button'
-                    className='border border-[#2b2b2b] text-[#111] text-[12px] tracking-[1px] py-3'
+                    className='border border-primary text-primary text-[12px] tracking-[1px] py-3'
                     onClick={() => navigate('/cart')}
                   >
                     VOLTAR
                   </button>
                   <button
                     type='button'
-                    className='bg-[#2b2b2b] text-white text-[12px] tracking-[1px] py-3 disabled:opacity-50'
+                    className='bg-primary text-primary-foreground text-[12px] tracking-[1px] py-3 disabled:opacity-50'
                     onClick={handleSubmitOrder}
                     disabled={isSubmitting || cartItems.length === 0}
                   >

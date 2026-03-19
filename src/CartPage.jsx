@@ -141,7 +141,7 @@ const CartPage = () => {
                 <p className='text-[16px] text-black/70'>O seu carrinho esta vazio.</p>
                 <button
                   type='button'
-                  className='mt-4 border-0 bg-[#212326] text-white text-[11px] tracking-[1px] py-[10px] px-[20px] cursor-pointer'
+                  className='mt-4 border-0 bg-primary text-primary-foreground text-[11px] tracking-[1px] py-[10px] px-[20px] cursor-pointer'
                   onClick={() => navigate('/products')}
                 >
                   CONTINUAR COMPRAS
@@ -213,7 +213,7 @@ const CartPage = () => {
                 />
                 <button
                   type='button'
-                  className='border-0 bg-[#212326] text-white text-[10px] tracking-[0.8px] py-[7px] px-4 cursor-pointer disabled:opacity-50'
+                  className='border-0 bg-primary text-primary-foreground text-[10px] tracking-[0.8px] py-[7px] px-4 cursor-pointer disabled:opacity-50'
                   onClick={handleApplyCoupon}
                   disabled={isApplyingCoupon || cartItems.length === 0}
                 >
@@ -262,7 +262,7 @@ const CartPage = () => {
 
             <button
               type='button'
-              className='w-full border-0 bg-[#212326] text-white text-[11px] tracking-[1px] py-[11px] px-[14px] cursor-pointer disabled:opacity-50'
+              className='w-full border-0 bg-primary text-primary-foreground text-[11px] tracking-[1px] py-[11px] px-[14px] cursor-pointer disabled:opacity-50'
               onClick={handleCheckout}
               disabled={cartItems.length === 0}
             >

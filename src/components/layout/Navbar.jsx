@@ -3,7 +3,8 @@ import { Link } from 'react-router-dom'
 import logo from '../../assets/Logo.png'
 import { Search, User, ShoppingCart, Menu, X } from 'lucide-react'
 import { cartEvents, getCartCount } from '../../lib/cart'
-import { getJson } from '../../lib/api'
+import { getJson, resolveAssetUrl } from '../../lib/api'
+import { THEME_UPDATED_EVENT } from '../../lib/theme'
 
 function buildCategoryLink(category, index) {
     const categoryId = category?.id != null ? String(category.id) : `category-${index}`
@@ -19,6 +20,7 @@ const Navbar = () => {
     const [open, setOpen] = useState(false)
     const [cartCount, setCartCount] = useState(0)
     const [categories, setCategories] = useState([])
+    const [logoSrc, setLogoSrc] = useState(logo)
 
     useEffect(() => {
         const syncCartCount = () => setCartCount(getCartCount())
@@ -63,11 +65,46 @@ const Navbar = () => {
         }
     }, [])
 
+    useEffect(() => {
+        let active = true
+        const controller = new AbortController()
+
+        const applyLogo = (settings) => {
+            const resolved = resolveAssetUrl(settings?.public_logo_url || '')
+            setLogoSrc(resolved || logo)
+        }
+
+        const loadTheme = async () => {
+            try {
+                const settings = await getJson('/api/system/theme', { signal: controller.signal })
+                if (!active) return
+                applyLogo(settings)
+            } catch (error) {
+                if (!active || error?.name === 'AbortError') return
+            }
+        }
+
+        const onThemeUpdated = (event) => {
+            const payload = event?.detail?.settings ?? event?.detail ?? null
+            if (!payload) return
+            applyLogo(payload)
+        }
+
+        void loadTheme()
+        window.addEventListener(THEME_UPDATED_EVENT, onThemeUpdated)
+
+        return () => {
+            active = false
+            controller.abort()
+            window.removeEventListener(THEME_UPDATED_EVENT, onThemeUpdated)
+        }
+    }, [])
+
     return (
         <>
             <header>
                 <nav>
-                    <div className='bg-black text-white p-2 text-center text-[12px]'>
+                    <div className='bg-primary text-primary-foreground p-2 text-center text-[12px]'>
                         Ofertas e Informacoes Saldos
                     </div>
                     <div className='flex w-full justify-between items-center px-4 md:px-16 py-2'>
@@ -77,7 +114,12 @@ const Navbar = () => {
                             <Link to='/contact'>Contacts</Link>
                         </div>
                         <div className='w-4/12 md:w-1/12 flex justify-center'>
-                            <img src={logo} alt='Logo' className='h-8 md:h-10 object-contain' />
+                            <img
+                                src={logoSrc}
+                                alt='Logo'
+                                className='h-8 md:h-10 object-contain'
+                                onError={() => setLogoSrc(logo)}
+                            />
                         </div>
                         <div className='hidden md:flex w-1/12 justify-between'>
                             <Search />
@@ -85,7 +127,7 @@ const Navbar = () => {
                             <Link to='/cart' className='relative' aria-label='Open cart'>
                                 <ShoppingCart />
                                 {cartCount > 0 ? (
-                                    <span className='absolute -top-2 -right-2 min-w-4 h-4 rounded-full bg-black text-white text-[10px] px-1 flex items-center justify-center'>
+                                    <span className='absolute -top-2 -right-2 min-w-4 h-4 rounded-full bg-primary text-primary-foreground text-[10px] px-1 flex items-center justify-center'>
                                         {cartCount > 99 ? '99+' : cartCount}
                                     </span>
                                 ) : null}
@@ -101,7 +143,7 @@ const Navbar = () => {
                     </div>
                     <div className='hidden md:flex flex-wrap justify-center gap-x-8 gap-y-3 py-6 border-t border-gray-300 px-6'>
                         {categories.map((category) => (
-                            <Link key={category.id} to={category.to} className='focus:text-red-500 whitespace-nowrap'>
+                            <Link key={category.id} to={category.to} className='focus:text-primary whitespace-nowrap'>
                                 {category.title}
                             </Link>
                         ))}
@@ -115,7 +157,7 @@ const Navbar = () => {
                                 <Link to='/cart' className='relative' aria-label='Open cart' onClick={() => setOpen(false)}>
                                     <ShoppingCart />
                                     {cartCount > 0 ? (
-                                        <span className='absolute -top-2 -right-2 min-w-4 h-4 rounded-full bg-black text-white text-[10px] px-1 flex items-center justify-center'>
+                                        <span className='absolute -top-2 -right-2 min-w-4 h-4 rounded-full bg-primary text-primary-foreground text-[10px] px-1 flex items-center justify-center'>
                                             {cartCount > 99 ? '99+' : cartCount}
                                         </span>
                                     ) : null}

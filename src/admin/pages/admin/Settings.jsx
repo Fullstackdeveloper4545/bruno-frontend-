@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
 import { adminApi } from "@/lib/adminApi";
+import { DEFAULT_PRIMARY_COLOR, THEME_UPDATED_EVENT } from "@/lib/theme";
 
 const MODULES_UPDATED_EVENT = "admin:modules-updated";
 const moduleItems = [
@@ -36,6 +37,16 @@ const Settings = () => {
   const [savingGeneralSettings, setSavingGeneralSettings] = useState(false);
   const [modulesState, setModulesState] = useState({});
   const [loadingModules, setLoadingModules] = useState(true);
+  const [themeSettings, setThemeSettings] = useState({
+    public_primary_color: DEFAULT_PRIMARY_COLOR,
+    public_layout: "classic",
+  });
+  const [initialThemeSettings, setInitialThemeSettings] = useState({
+    public_primary_color: DEFAULT_PRIMARY_COLOR,
+    public_layout: "classic",
+  });
+  const [loadingThemeSettings, setLoadingThemeSettings] = useState(true);
+  const [savingThemeSettings, setSavingThemeSettings] = useState(false);
   const [savingKey, setSavingKey] = useState("");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
@@ -80,8 +91,28 @@ const Settings = () => {
       }
     };
 
+    const loadThemeSettings = async () => {
+      try {
+        setLoadingThemeSettings(true);
+        const payload = await adminApi.getThemeSettings();
+        if (!active) return;
+        const normalized = {
+          public_primary_color: String(payload?.public_primary_color || payload?.primary_color || DEFAULT_PRIMARY_COLOR),
+          public_layout: String(payload?.public_layout || "classic"),
+        };
+        setThemeSettings(normalized);
+        setInitialThemeSettings(normalized);
+      } catch (loadError) {
+        if (!active) return;
+        setError(loadError instanceof Error ? loadError.message : "Failed to load theme settings.");
+      } finally {
+        if (active) setLoadingThemeSettings(false);
+      }
+    };
+
     void loadGeneralSettings();
     void loadModules();
+    void loadThemeSettings();
     return () => {
       active = false;
     };
@@ -99,6 +130,11 @@ const Settings = () => {
     () =>
       JSON.stringify(generalSettings) !== JSON.stringify(initialGeneralSettings),
     [generalSettings, initialGeneralSettings]
+  );
+  const hasThemeSettingsChanges = useMemo(
+    () =>
+      JSON.stringify(themeSettings) !== JSON.stringify(initialThemeSettings),
+    [themeSettings, initialThemeSettings]
   );
 
   const onSaveGeneralSettings = async () => {
@@ -152,13 +188,40 @@ const Settings = () => {
     }
   };
 
+  const onSaveThemeSettings = async () => {
+    try {
+      setSavingThemeSettings(true);
+      setError("");
+      setMessage("");
+      const payload = {
+        public_primary_color: String(themeSettings.public_primary_color || "").trim(),
+        public_layout: String(themeSettings.public_layout || "classic").trim(),
+      };
+      const saved = await adminApi.setThemeSettings(payload);
+      const normalized = {
+        public_primary_color: String(
+          saved?.public_primary_color || saved?.primary_color || payload.public_primary_color || DEFAULT_PRIMARY_COLOR
+        ),
+        public_layout: String(saved?.public_layout || payload.public_layout || "classic"),
+      };
+      setThemeSettings(normalized);
+      setInitialThemeSettings(normalized);
+      window.dispatchEvent(new CustomEvent(THEME_UPDATED_EVENT, { detail: { settings: normalized } }));
+      setMessage("Theme settings saved.");
+    } catch (saveError) {
+      setError(saveError instanceof Error ? saveError.message : "Failed to save theme settings.");
+    } finally {
+      setSavingThemeSettings(false);
+    }
+  };
+
   return (
     <div className="space-y-8">
       <PageHeader
         title="Definições do sistema"
         description="Configure nome do site, IVA, email e ativação de módulos."
-        actions={
-          <Button
+        actions={null /*
+          <Button className="hidden"
             variant="outline"
             onClick={() => void onSaveGeneralSettings()}
             disabled={loadingGeneralSettings || savingGeneralSettings || !hasGeneralSettingsChanges}
@@ -166,7 +229,7 @@ const Settings = () => {
             <Sliders className="mr-2 h-4 w-4" />
             {savingGeneralSettings ? "A guardar..." : "Guardar definições"}
           </Button>
-        }
+        */}
       />
 
       <div className="grid gap-4 lg:grid-cols-[1.2fr_1fr]">
@@ -220,6 +283,82 @@ const Settings = () => {
                 disabled={loadingGeneralSettings || savingGeneralSettings}
               />
             </div>
+
+            <Button
+              variant="outline"
+              onClick={() => void onSaveGeneralSettings()}
+              disabled={loadingGeneralSettings || savingGeneralSettings || !hasGeneralSettingsChanges}
+              className="hidden"
+            >
+              <Sliders className="mr-2 h-4 w-4" />
+              {savingGeneralSettings ? "A guardar..." : "Guardar definiÃ§Ãµes"}
+            </Button>
+          </CardContent>
+        </Card>
+
+        <Card className="border-border/60 bg-card/90">
+          <CardHeader>
+            <CardTitle className="font-display text-xl">Tema</CardTitle>
+            <CardDescription>Defina a cor principal usada no site pÃºblico.</CardDescription>
+            {loadingThemeSettings ? <p className="text-sm text-muted-foreground">A carregar tema...</p> : null}
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Cor principal</label>
+              <div className="flex flex-wrap items-center gap-3">
+                <Input
+                  type="color"
+                  value={themeSettings.public_primary_color}
+                  onChange={(event) =>
+                    setThemeSettings((prev) => ({ ...prev, public_primary_color: event.target.value }))
+                  }
+                  disabled={loadingThemeSettings || savingThemeSettings}
+                  className="h-10 w-14 p-1"
+                />
+                <Input
+                  value={themeSettings.public_primary_color}
+                  onChange={(event) =>
+                    setThemeSettings((prev) => ({ ...prev, public_primary_color: event.target.value }))
+                  }
+                  placeholder={DEFAULT_PRIMARY_COLOR}
+                  disabled={loadingThemeSettings || savingThemeSettings}
+                  className="max-w-[220px] font-mono"
+                />
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-muted-foreground">Preview:</span>
+                  <span
+                    className="inline-flex h-6 w-6 rounded-full ring-2 ring-ring"
+                    style={{ backgroundColor: themeSettings.public_primary_color || DEFAULT_PRIMARY_COLOR }}
+                  />
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground">Aceita hex (ex: #6C939B).</p>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-sm font-medium">Layout (Home)</label>
+              <select
+                value={themeSettings.public_layout}
+                onChange={(event) =>
+                  setThemeSettings((prev) => ({ ...prev, public_layout: event.target.value }))
+                }
+                disabled={loadingThemeSettings || savingThemeSettings}
+                className="flex h-10 w-full max-w-[320px] rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+              >
+                <option value="classic">Classic</option>
+                <option value="categories-first">Categories first</option>
+                <option value="minimal">Minimal</option>
+              </select>
+              <p className="text-xs text-muted-foreground">Altera a ordem/seÃ§Ãµes da pÃ¡gina inicial.</p>
+            </div>
+
+            <Button
+              variant="outline"
+              onClick={() => void onSaveThemeSettings()}
+              disabled={loadingThemeSettings || savingThemeSettings || !hasThemeSettingsChanges}
+            >
+              {savingThemeSettings ? "A guardar..." : "Guardar tema"}
+            </Button>
           </CardContent>
         </Card>
       </div>

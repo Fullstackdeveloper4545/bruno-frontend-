@@ -134,7 +134,7 @@ const ThankYouPage = () => {
           {error ? <p className='mt-3 text-[12px] text-[#b42318]'>{error}</p> : null}
         </div>
 
-        <div className='bg-[#7399a5] py-12'>
+        <div className='bg-primary py-12 text-primary-foreground'>
           <div className='flex items-center justify-center gap-4 px-4 flex-wrap'>
             {previewItems.length > 0 ? (
               previewItems.map((item) => (
@@ -154,7 +154,7 @@ const ThankYouPage = () => {
         <div className='py-16 flex justify-center px-4'>
           <Link
             to='/'
-            className='w-full max-w-[328px] bg-[#242529] text-white text-[10px] tracking-[1px] py-3 text-center'
+            className='w-full max-w-[328px] bg-primary text-primary-foreground text-[10px] tracking-[1px] py-3 text-center'
           >
             VOLTAR A LOJA
           </Link>

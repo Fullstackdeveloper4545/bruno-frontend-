@@ -2,6 +2,7 @@ import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
 import { BrowserRouter as Router, Routes, Route, Navigate, Outlet } from 'react-router-dom'
 import './index.css'
+import ThemeBootstrap from './ThemeBootstrap.jsx'
 import App from './App.jsx'
 import ProductsPage from './ProductsPage.jsx'
 import ProductDetailsPage from './ProductDetailsPage.jsx'
@@ -37,6 +38,8 @@ import Customers from './admin/pages/admin/Customers.jsx'
 import Integrations from './admin/pages/admin/Integrations.jsx'
 import Languages from './admin/pages/admin/Languages.jsx'
 import Settings from './admin/pages/admin/Settings.jsx'
+import Layouts from './admin/pages/admin/Layouts.jsx'
+import ThemeEditor from './admin/pages/admin/ThemeEditor.jsx'
 import Security from './admin/pages/admin/Security.jsx'
 import LowStockProducts from './admin/pages/admin/LowStockProducts.jsx'
 import Blogs from './admin/pages/admin/Blogs.jsx'
@@ -66,6 +69,7 @@ const AdminLoginGate = () => {
 createRoot(document.getElementById('root')).render(
   <StrictMode>
     <Router>
+      <ThemeBootstrap />
       <Routes>
         <Route path='/' element={<App />} />
 
@@ -100,6 +104,8 @@ createRoot(document.getElementById('root')).render(
             <Route path='customers' element={<Customers />} />
             <Route path='integrations' element={<Integrations />} />
             <Route path='languages' element={<Languages />} />
+            <Route path='layouts' element={<Layouts />} />
+            <Route path='theme-editor' element={<ThemeEditor />} />
             <Route path='settings' element={<Settings />} />
             <Route path='security' element={<Security />} />
             <Route path='low-stock' element={<LowStockProducts />} />

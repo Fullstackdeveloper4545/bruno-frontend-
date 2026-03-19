@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import 'swiper/css'
 import 'swiper/css/pagination'
@@ -29,6 +29,7 @@ import benefitReturns from './assets/image2.png'
 import benefitSecure from './assets/image3.png'
 import fallbackProductImage from './assets/product-card-test-image.png'
 import { getJson, resolveAssetUrl } from './lib/api'
+import { THEME_UPDATED_EVENT } from './lib/theme'
 
 const fallbackStoreImages = [StoreFaro, StoreLisboa, StoreMatosinhos]
 
@@ -90,6 +91,97 @@ const benefits = [
   },
 ]
 const LOW_STOCK_THRESHOLD = 5
+
+const HOME_SECTION_KEYS = [
+  'hero',
+  'athlete',
+  'categories',
+  'performance',
+  'promo',
+  'brands',
+  'stores',
+  'community',
+  'benefits',
+]
+
+const DEFAULT_HOME_CONTENT = {
+  hero_title: 'Corre mais longe. Corre melhor.',
+  hero_body:
+    'Equipamento tecnico para corrida e trail running, testado por atletas e escolhido para quem leva a performance a serio.',
+  hero_cta_label: 'COMPRAR AGORA',
+  athlete_title: 'Escolhas dos atletas',
+  athlete_body:
+    'Os modelos e equipamentos mais procurados por quem corre todos os dias - estrada, trilho e ultra trail.',
+  athlete_cta_label: 'COMPRAR AGORA',
+  categories_title: 'Tudo o que precisas para correr melhor',
+  performance_title: 'Performance comprovada',
+  performance_body:
+    'Selecionamos apenas marcas e modelos que cumprem os nossos criterios de qualidade, durabilidade e eficiencia.',
+  promo_title: 'Corre para as oportunidades',
+  promo_body: 'Ate 30% de desconto em artigos selecionados. So por tempo limitado.',
+  promo_cta_label: 'COMPRAR AGORA',
+  brands_title: 'Marcas',
+  stores_title: 'Estamos perto de ti',
+  stores_body: 'Visita-nos numa das nossas lojas fisicas e recebe aconselhamento especializado.',
+  community_title: 'Ana Dias sempre contigo',
+  community_body:
+    'A tua corrida e a nossa inspiracao. Partilha os teus momentos, treinos e conquistas com #anadiasrun e faz parte da nossa comunidade.',
+}
+
+function normalizeLayout(layout) {
+  const candidate = String(layout || 'classic').trim().toLowerCase()
+  const allowed = new Set(['classic', 'categories-first', 'minimal'])
+  return allowed.has(candidate) ? candidate : 'classic'
+}
+
+function buildDefaultHomeSections(layout) {
+  const enabledByLayout = (() => {
+    if (layout === 'categories-first') {
+      return new Set(['hero', 'categories', 'athlete', 'performance', 'promo', 'brands', 'stores', 'community', 'benefits'])
+    }
+    if (layout === 'minimal') return new Set(['hero', 'categories', 'performance', 'benefits'])
+    return new Set(['hero', 'athlete', 'categories', 'performance', 'promo', 'brands', 'stores', 'community', 'benefits'])
+  })()
+
+  return HOME_SECTION_KEYS.map((key) => ({ key, enabled: enabledByLayout.has(key) }))
+}
+
+function normalizeHomeSections(raw, layout) {
+  const allowed = new Set(HOME_SECTION_KEYS)
+  const fallback = buildDefaultHomeSections(layout)
+  if (!Array.isArray(raw) || raw.length === 0) return fallback
+
+  const defaults = buildDefaultHomeSections(layout)
+  const defaultEnabled = new Map(defaults.map((row) => [row.key, row.enabled !== false]))
+
+  const normalized = []
+  const seen = new Set()
+  for (const entry of raw) {
+    const key = typeof entry === 'string' ? entry : entry?.key
+    const safeKey = String(key || '').trim()
+    if (!safeKey || !allowed.has(safeKey) || seen.has(safeKey)) continue
+    seen.add(safeKey)
+    const enabled = typeof entry === 'object' && entry ? entry.enabled !== false : true
+    normalized.push({ key: safeKey, enabled })
+  }
+
+  for (const key of HOME_SECTION_KEYS) {
+    if (seen.has(key)) continue
+    normalized.push({ key, enabled: defaultEnabled.get(key) !== false })
+  }
+
+  return normalized.length > 0 ? normalized : fallback
+}
+
+function normalizeHomeContent(raw) {
+  const safe = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {}
+  const next = { ...DEFAULT_HOME_CONTENT }
+  for (const key of Object.keys(DEFAULT_HOME_CONTENT)) {
+    if (safe[key] == null) continue
+    next[key] = String(safe[key])
+  }
+  return next
+}
 
 function toNumber(value, fallback = 0) {
   const parsed = Number(value)
@@ -254,6 +346,60 @@ function App() {
   const [homeProducts, setHomeProducts] = useState([])
   const [homeCategories, setHomeCategories] = useState([])
   const [homeStores, setHomeStores] = useState([])
+  const [publicLayout, setPublicLayout] = useState('classic')
+  const [homeSections, setHomeSections] = useState(() => buildDefaultHomeSections('classic'))
+  const [homeContent, setHomeContent] = useState(() => normalizeHomeContent(null))
+  const publicLayoutRef = useRef('classic')
+
+  useEffect(() => {
+    publicLayoutRef.current = publicLayout
+  }, [publicLayout])
+
+  useEffect(() => {
+    let active = true
+    const controller = new AbortController()
+
+    const loadThemeSettings = async () => {
+      try {
+        const settings = await getJson('/api/system/theme', { signal: controller.signal })
+        if (!active) return
+        const layout = normalizeLayout(settings?.public_layout)
+        setPublicLayout(layout)
+        setHomeSections(normalizeHomeSections(settings?.public_home_sections, layout))
+        setHomeContent(normalizeHomeContent(settings?.public_home_content))
+      } catch (error) {
+        if (!active || error?.name === 'AbortError') return
+        setPublicLayout('classic')
+        setHomeSections(buildDefaultHomeSections('classic'))
+        setHomeContent(normalizeHomeContent(null))
+      }
+    }
+
+    void loadThemeSettings()
+
+    const onThemeUpdated = (event) => {
+      const payload = event?.detail?.settings ?? event?.detail ?? null
+      if (!payload) return
+      const hasLayout = Object.prototype.hasOwnProperty.call(payload, 'public_layout')
+      const nextLayout = hasLayout ? normalizeLayout(payload?.public_layout) : publicLayoutRef.current
+      setPublicLayout(nextLayout)
+
+      if (Object.prototype.hasOwnProperty.call(payload, 'public_home_sections')) {
+        setHomeSections(normalizeHomeSections(payload?.public_home_sections, nextLayout))
+      }
+      if (Object.prototype.hasOwnProperty.call(payload, 'public_home_content')) {
+        setHomeContent(normalizeHomeContent(payload?.public_home_content))
+      }
+    }
+
+    window.addEventListener(THEME_UPDATED_EVENT, onThemeUpdated)
+
+    return () => {
+      active = false
+      controller.abort()
+      window.removeEventListener(THEME_UPDATED_EVENT, onThemeUpdated)
+    }
+  }, [])
 
   useEffect(() => {
     let isCancelled = false
@@ -355,71 +501,125 @@ function App() {
     return source.slice(0, 3)
   }, [homeStores])
 
+  const normalizedHomeSections = useMemo(
+    () => normalizeHomeSections(homeSections, publicLayout),
+    [homeSections, publicLayout]
+  )
+
+  const enabledHomeSections = useMemo(() => {
+    const enabled = new Set()
+    for (const row of normalizedHomeSections) {
+      if (row?.enabled === false) continue
+      enabled.add(row.key)
+    }
+    return enabled
+  }, [normalizedHomeSections])
+
+  const sectionOrder = useMemo(() => {
+    const next = {}
+    let order = 10
+    for (const row of normalizedHomeSections) {
+      const key = String(row?.key || '').trim()
+      if (!key) continue
+      next[key] = order
+      order += 10
+    }
+    next.status = (next.hero || 10) + 5
+    next.loading = order + 10
+    return next
+  }, [normalizedHomeSections])
+
+  const isSectionEnabled = (key) => enabledHomeSections.has(key)
+
   return (
     <>
       <Navbar />
+      <div className='flex flex-col'>
 
-      <section className='bg-white'>
-        <div className='hero-bg h-[90vh]'>
-          <div className='w-full md:w-3/12 text-white flex flex-col justify-center h-[90vh] md:ml-[10%] px-6 md:px-0'>
-            <h1 className='text-[32px] md:text-[46px]'>Corre mais longe. Corre melhor.</h1>
-            <p className='w-full md:w-9/12 py-4 text-[14px]'>
-              Equipamento tecnico para corrida e trail running, testado por atletas e escolhido
-              para quem leva a performance a serio.
-            </p>
-            <button className='bg-white py-2 w-full md:w-6/12 text-black'>COMPRAR AGORA</button>
+      {isSectionEnabled('hero') ? (
+        <section className='bg-white' style={{ order: sectionOrder.hero }}>
+          <div className='hero-bg h-[90vh]'>
+            <div className='w-full md:w-3/12 text-white flex flex-col justify-center h-[90vh] md:ml-[10%] px-6 md:px-0'>
+              <h1 className='text-[32px] md:text-[46px]' data-theme-edit='public_home_content.hero_title'>
+                {homeContent.hero_title}
+              </h1>
+              <p className='w-full md:w-9/12 py-4 text-[14px]' data-theme-edit='public_home_content.hero_body'>
+                {homeContent.hero_body}
+              </p>
+              <button
+                className='bg-primary text-primary-foreground py-2 w-full md:w-6/12'
+                data-theme-edit='public_home_content.hero_cta_label'
+              >
+                {homeContent.hero_cta_label}
+              </button>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      ) : null}
 
-      {homeError ? <p className='mt-4 text-center text-[13px] text-[#b42318]'>{homeError}</p> : null}
+      {homeError ? (
+        <p className='mt-4 text-center text-[13px] text-[#b42318]' style={{ order: sectionOrder.status }}>
+          {homeError}
+        </p>
+      ) : null}
 
-      <section className='mt-[10vh] flex flex-col items-center'>
-        <div className='text-center'>
-          <h1 className='text-[24px]'>Escolhas dos atletas</h1>
-          <p className='py-4'>
-            Os modelos e equipamentos mais procurados por quem corre todos os dias - estrada,
-            trilho e ultra trail.
-          </p>
-        </div>
+      {isSectionEnabled('athlete') ? (
+        <section className='mt-[10vh] flex flex-col items-center' style={{ order: sectionOrder.athlete }}>
+          <div className='text-center'>
+            <h1 className='text-[24px]' data-theme-edit='public_home_content.athlete_title'>
+              {homeContent.athlete_title}
+            </h1>
+            <p className='py-4' data-theme-edit='public_home_content.athlete_body'>
+              {homeContent.athlete_body}
+            </p>
+          </div>
 
-        <div className='w-[95vw] mx-auto'>
-          <Swiper
-            slidesPerView={1}
-            spaceBetween={12}
-            preventClicks={false}
-            preventClicksPropagation={false}
-            breakpoints={{
-              640: { slidesPerView: 2, spaceBetween: 12 },
-              768: { slidesPerView: 3, spaceBetween: 12 },
-              1024: { slidesPerView: 5, spaceBetween:6  },
-            }}
-            pagination={{ clickable: true }}
-            navigation={true}
-            modules={[Pagination, Navigation]}
-            className='mySwiper'
+          <div className='w-[95vw] mx-auto'>
+            <Swiper
+              slidesPerView={1}
+              spaceBetween={12}
+              preventClicks={false}
+              preventClicksPropagation={false}
+              breakpoints={{
+                640: { slidesPerView: 2, spaceBetween: 12 },
+                768: { slidesPerView: 3, spaceBetween: 12 },
+                1024: { slidesPerView: 5, spaceBetween: 6 },
+              }}
+              pagination={{ clickable: true }}
+              navigation={true}
+              modules={[Pagination, Navigation]}
+              className='mySwiper'
+            >
+              {athleteProducts.map((product) => (
+                <SwiperSlide key={product.id} className=' flex gap-3'>
+                  <ProductCard
+                    image={product.image}
+                    title={product.title}
+                    color={product.color}
+                    price={product.price}
+                    oldPrice={product.oldPrice}
+                    discountLabel={product.discountLabel}
+                    stockLabel={product.stockLabel}
+                    to={`/productDetails/${encodeURIComponent(String(product.id))}`}
+                  />
+                </SwiperSlide>
+              ))}
+            </Swiper>
+          </div>
+          <button
+            className='py-2 px-10 bg-primary text-primary-foreground my-10'
+            data-theme-edit='public_home_content.athlete_cta_label'
           >
-            {athleteProducts.map((product) => (
-              <SwiperSlide key={product.id} className=' flex gap-3'>
-                <ProductCard
-                  image={product.image}
-                  title={product.title}
-                  color={product.color}
-                  price={product.price}
-                  oldPrice={product.oldPrice}
-                  discountLabel={product.discountLabel}
-                  stockLabel={product.stockLabel}
-                  to={`/productDetails/${encodeURIComponent(String(product.id))}`}
-                />
-              </SwiperSlide>
-            ))}
-          </Swiper>
-        </div>
-        <button className='py-2 px-10 bg-black text-white my-10'>COMPRAR AGORA</button>
-      </section>
+            {homeContent.athlete_cta_label}
+          </button>
+        </section>
+      ) : null}
 
-      <section>
-        <h1 className='text-[24px] text-center'>Tudo o que precisas para correr melhor</h1>
+      {isSectionEnabled('categories') ? (
+      <section style={{ order: sectionOrder.categories }}>
+        <h1 className='text-[24px] text-center' data-theme-edit='public_home_content.categories_title'>
+          {homeContent.categories_title}
+        </h1>
 
         <div className='mt-6 w-full md:hidden'>
           <Swiper
@@ -449,13 +649,16 @@ function App() {
           ))}
         </div>
       </section>
+      ) : null}
 
-      <section className='mt-[10vh] flex flex-col items-center'>
+      {isSectionEnabled('performance') ? (
+      <section className='mt-[10vh] flex flex-col items-center' style={{ order: sectionOrder.performance }}>
         <div className='text-center'>
-          <h1 className='text-[24px]'>Performance comprovada</h1>
-          <p className='py-4'>
-            Selecionamos apenas marcas e modelos que cumprem os nossos criterios de qualidade,
-            durabilidade e eficiencia.
+          <h1 className='text-[24px]' data-theme-edit='public_home_content.performance_title'>
+            {homeContent.performance_title}
+          </h1>
+          <p className='py-4' data-theme-edit='public_home_content.performance_body'>
+            {homeContent.performance_body}
           </p>
         </div>
 
@@ -492,23 +695,34 @@ function App() {
           </Swiper>
         </div>
       </section>
+      ) : null}
 
-      <section className='mt-[10vh]'>
+      {isSectionEnabled('promo') ? (
+      <section className='mt-[10vh]' style={{ order: sectionOrder.promo }}>
         <div className='promo-bg h-[50vh] w-[90vw] mx-auto flex items-center justify-center'>
           <div className='text-center text-white px-8 py-6'>
-            <h2 className='text-[32px]'>Corre para as oportunidades</h2>
-            <p className='py-3 text-[16px]'>
-              Ate 30% de desconto em artigos selecionados. So por tempo limitado.
+            <h2 className='text-[32px]' data-theme-edit='public_home_content.promo_title'>
+              {homeContent.promo_title}
+            </h2>
+            <p className='py-3 text-[16px]' data-theme-edit='public_home_content.promo_body'>
+              {homeContent.promo_body}
             </p>
-            <button className='bg-white text-black px-10 py-2 tracking-[2px] text-[14px]'>
-              COMPRAR AGORA
+            <button
+              className='bg-primary text-primary-foreground px-10 py-2 tracking-[2px] text-[14px]'
+              data-theme-edit='public_home_content.promo_cta_label'
+            >
+              {homeContent.promo_cta_label}
             </button>
           </div>
         </div>
       </section>
+      ) : null}
 
-      <section className='mt-[10vh] mb-[10vh]'>
-        <h2 className='text-[32px] text-center mb-6'>Marcas</h2>
+      {isSectionEnabled('brands') ? (
+      <section className='mt-[10vh] mb-[10vh]' style={{ order: sectionOrder.brands }}>
+        <h2 className='text-[32px] text-center mb-6' data-theme-edit='public_home_content.brands_title'>
+          {homeContent.brands_title}
+        </h2>
 
         <div className='w-[90vw] mx-auto md:hidden'>
           <Swiper
@@ -535,13 +749,15 @@ function App() {
           ))}
         </div>
       </section>
+      ) : null}
 
-      <section className='mx-auto max-w-[1366px] px-5 sm:px-8 lg:px-[42px] py-[40px] sm:py-[55px] lg:py-[70px] text-center'>
+      {isSectionEnabled('stores') ? (
+      <section className='mx-auto max-w-[1366px] px-5 sm:px-8 lg:px-[42px] py-[40px] sm:py-[55px] lg:py-[70px] text-center' style={{ order: sectionOrder.stores }}>
         <h2 className='m-0 text-[28px] sm:text-[32px] leading-[1.04] font-normal text-[#262626]'>
-          Estamos perto de ti
+          <span data-theme-edit='public_home_content.stores_title'>{homeContent.stores_title}</span>
         </h2>
         <p className='m-0 mt-3 text-[14px] sm:text-[16px] leading-[1.5] tracking-[0.04em] text-[#333]'>
-          Visita-nos numa das nossas lojas fisicas e recebe aconselhamento especializado.
+          <span data-theme-edit='public_home_content.stores_body'>{homeContent.stores_body}</span>
         </p>
 
         <div className='mt-6 md:hidden'>
@@ -567,13 +783,16 @@ function App() {
           ))}
         </div>
       </section>
+      ) : null}
 
-      <section className='mt-[10vh] mb-[10vh] flex flex-col items-center'>
+      {isSectionEnabled('community') ? (
+      <section className='mt-[10vh] mb-[10vh] flex flex-col items-center' style={{ order: sectionOrder.community }}>
         <div className='text-center'>
-          <h2 className='text-[32px]'>Ana Dias sempre contigo</h2>
-          <p className='py-3 text-[16px]'>
-            A tua corrida e a nossa inspiracao. Partilha os teus momentos, treinos e conquistas
-            com #anadiasrun e faz parte da nossa comunidade.
+          <h2 className='text-[32px]' data-theme-edit='public_home_content.community_title'>
+            {homeContent.community_title}
+          </h2>
+          <p className='py-3 text-[16px]' data-theme-edit='public_home_content.community_body'>
+            {homeContent.community_body}
           </p>
         </div>
         <div className='w-[95vw] mx-auto'>
@@ -609,8 +828,10 @@ function App() {
           </Swiper>
         </div>
       </section>
+      ) : null}
 
-      <section className='mt-[10vh] mb-[10vh]'>
+      {isSectionEnabled('benefits') ? (
+      <section className='mt-[10vh] mb-[10vh]' style={{ order: sectionOrder.benefits }}>
         <div className='w-[90vw] mx-auto md:hidden'>
           <Swiper
             slidesPerView={1}
@@ -642,9 +863,15 @@ function App() {
           ))}
         </div>
       </section>
+      ) : null}
 
-      {homeLoading ? <p className='mb-8 text-center text-[13px] text-[#6b7280]'>Syncing home data...</p> : null}
+      {homeLoading ? (
+        <p className='mb-8 text-center text-[13px] text-[#6b7280]' style={{ order: sectionOrder.loading }}>
+          Syncing home data...
+        </p>
+      ) : null}
 
+      </div>
       <Footer />
     </>
   )

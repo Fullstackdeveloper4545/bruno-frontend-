@@ -141,7 +141,7 @@ const AboutUsPage = () => {
   )
 
   const cardClass =
-    'bg-black text-white rounded-[18px] p-8 w-[300px] sm:w-[280px] flex flex-col justify-between'
+    'bg-primary text-primary-foreground rounded-[18px] p-8 w-[300px] sm:w-[280px] flex flex-col justify-between'
 
   return (
     <>
