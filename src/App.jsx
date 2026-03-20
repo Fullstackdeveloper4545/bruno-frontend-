@@ -538,7 +538,7 @@ function App() {
 
       {isSectionEnabled('hero') ? (
         <section className='bg-white' style={{ order: sectionOrder.hero }}>
-          <div className='hero-bg h-[90vh]'>
+          <div className='hero-bg h-[90vh]' data-theme-image='public_home_hero_image' data-theme-image-label='Hero image'>
             <div className='w-full md:w-3/12 text-white flex flex-col justify-center h-[90vh] md:ml-[10%] px-6 md:px-0'>
               <h1 className='text-[32px] md:text-[46px]' data-theme-edit='public_home_content.hero_title'>
                 {homeContent.hero_title}
@@ -699,7 +699,7 @@ function App() {
 
       {isSectionEnabled('promo') ? (
       <section className='mt-[10vh]' style={{ order: sectionOrder.promo }}>
-        <div className='promo-bg h-[50vh] w-[90vw] mx-auto flex items-center justify-center'>
+        <div className='promo-bg h-[50vh] w-[90vw] mx-auto flex items-center justify-center' data-theme-image='public_home_promo_image' data-theme-image-label='Promo image'>
           <div className='text-center text-white px-8 py-6'>
             <h2 className='text-[32px]' data-theme-edit='public_home_content.promo_title'>
               {homeContent.promo_title}

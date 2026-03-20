@@ -1,10 +1,24 @@
 .hero-bg{
+  position: relative;
   background-image: var(--hero-bg-image, url("./assets/hero-bg.jpg"));
   background-size: 100% 100%;
   background-position: center; 
 
   background-repeat: no-repeat;
 
+}
+
+.hero-bg::before{
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--hero-overlay-color, transparent);
+  pointer-events: none;
+}
+
+.hero-bg > *{
+  position: relative;
+  z-index: 1;
 }
 
 .mySwiper{
@@ -32,16 +46,43 @@
 }
 
 .category-card-bg{
-  background-image: url("./assets/sneakers.jpg");
+  position: relative;
+  background-image: var(--category-card-bg-image, url("./assets/sneakers.jpg"));
   background-size: 100% 100%;
   background-position: center; 
   background-repeat: no-repeat;
 }
 
+.category-card-bg::before{
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--category-card-overlay-color, transparent);
+  pointer-events: none;
+}
+
+.category-card-bg > *{
+  position: relative;
+  z-index: 1;
+}
+
 .promo-bg{
+  position: relative;
   background-image: var(--promo-bg-image, url("./assets/sneakers-1.jpg"));
   background-size: cover;
   background-position: 75% 65%;
   background-repeat: no-repeat;
 }
 
+.promo-bg::before{
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--promo-overlay-color, transparent);
+  pointer-events: none;
+}
+
+.promo-bg > *{
+  position: relative;
+  z-index: 1;
+}

@@ -20,6 +20,38 @@ import { adminApi } from "@/lib/adminApi";
 import { resolveAssetUrl, uploadFile } from "@/lib/api";
 import { DEFAULT_PRIMARY_COLOR, THEME_UPDATED_EVENT } from "@/lib/theme";
 
+function settingsFromDraft(draft) {
+  const safeDraft = draft && typeof draft === "object" ? draft : {};
+  return {
+    public_primary_color: String(safeDraft.public_primary_color || DEFAULT_PRIMARY_COLOR).trim(),
+    public_layout: String(safeDraft.public_layout || "classic").trim(),
+    public_logo_url: String(safeDraft.public_logo_url || "").trim(),
+    public_radius: String(safeDraft.public_radius || "0.5rem").trim(),
+    public_home_hero_image: String(safeDraft.public_home_hero_image || "").trim(),
+    public_home_promo_image: String(safeDraft.public_home_promo_image || "").trim(),
+    public_category_card_bg_image: String(safeDraft.public_category_card_bg_image || "").trim(),
+    public_home_hero_overlay_color: String(safeDraft.public_home_hero_overlay_color || "#000000").trim(),
+    public_home_hero_overlay_opacity: String(safeDraft.public_home_hero_overlay_opacity ?? "0").trim(),
+    public_home_promo_overlay_color: String(safeDraft.public_home_promo_overlay_color || "#000000").trim(),
+    public_home_promo_overlay_opacity: String(safeDraft.public_home_promo_overlay_opacity ?? "0").trim(),
+    public_category_card_overlay_color: String(safeDraft.public_category_card_overlay_color || "#000000").trim(),
+    public_category_card_overlay_opacity: String(safeDraft.public_category_card_overlay_opacity ?? "0").trim(),
+    public_home_sections: Array.isArray(safeDraft.public_home_sections) ? safeDraft.public_home_sections : [],
+    public_home_content: safeDraft.public_home_content && typeof safeDraft.public_home_content === "object" ? safeDraft.public_home_content : {},
+    public_content_overrides:
+      safeDraft.public_content_overrides && typeof safeDraft.public_content_overrides === "object" ? safeDraft.public_content_overrides : {},
+  };
+}
+
+function snapshotFromDraft(draft) {
+  const safeDraft = draft && typeof draft === "object" ? draft : {};
+  return JSON.stringify({
+    id: String(safeDraft.id || ""),
+    name: String(safeDraft.name || "").trim() || "Theme",
+    settings: settingsFromDraft(safeDraft),
+  });
+}
+
 function normalizeDraft(payload) {
   const settings = payload?.settings && typeof payload.settings === "object" ? payload.settings : payload;
   return {
@@ -31,6 +63,13 @@ function normalizeDraft(payload) {
     public_radius: String(settings?.public_radius || "0.5rem").trim(),
     public_home_hero_image: String(settings?.public_home_hero_image || "").trim(),
     public_home_promo_image: String(settings?.public_home_promo_image || "").trim(),
+    public_category_card_bg_image: String(settings?.public_category_card_bg_image || "").trim(),
+    public_home_hero_overlay_color: String(settings?.public_home_hero_overlay_color || "#000000").trim(),
+    public_home_hero_overlay_opacity: String(settings?.public_home_hero_overlay_opacity ?? "0").trim(),
+    public_home_promo_overlay_color: String(settings?.public_home_promo_overlay_color || "#000000").trim(),
+    public_home_promo_overlay_opacity: String(settings?.public_home_promo_overlay_opacity ?? "0").trim(),
+    public_category_card_overlay_color: String(settings?.public_category_card_overlay_color || "#000000").trim(),
+    public_category_card_overlay_opacity: String(settings?.public_category_card_overlay_opacity ?? "0").trim(),
     public_home_sections: Array.isArray(settings?.public_home_sections) ? settings.public_home_sections : [],
     public_home_content: settings?.public_home_content && typeof settings.public_home_content === "object" ? settings.public_home_content : {},
     public_content_overrides:
@@ -54,17 +93,20 @@ function applyNestedDraftChange(prev, key, value) {
   return prev;
 }
 
-function applyXPathOverride(prev, { route, xpath, value }) {
+function applyXPathOverride(prev, { route, xpath, attr, value }) {
   const safeRoute = String(route || "/").trim() || "/";
   const safeXPath = String(xpath || "").trim();
+  const safeAttr = String(attr || "").trim();
   if (!safeXPath) return prev;
 
   const overrides =
     prev.public_content_overrides && typeof prev.public_content_overrides === "object" ? prev.public_content_overrides : {};
   const existingList = Array.isArray(overrides[safeRoute]) ? overrides[safeRoute].slice() : [];
-  const index = existingList.findIndex((item) => String(item?.xpath || "").trim() === safeXPath);
+  const index = existingList.findIndex(
+    (item) => String(item?.xpath || "").trim() === safeXPath && String(item?.attr || "").trim() === safeAttr
+  );
 
-  const nextItem = { xpath: safeXPath, value: String(value ?? "") };
+  const nextItem = safeAttr ? { xpath: safeXPath, attr: safeAttr, value: String(value ?? "") } : { xpath: safeXPath, value: String(value ?? "") };
   if (index >= 0) existingList[index] = { ...existingList[index], ...nextItem };
   else existingList.push(nextItem);
 
@@ -75,6 +117,109 @@ function applyXPathOverride(prev, { route, xpath, value }) {
       [safeRoute]: existingList,
     },
   };
+}
+
+function removeXPathOverride(prev, { route, xpath, attr }) {
+  const safeRoute = String(route || "/").trim() || "/";
+  const safeXPath = String(xpath || "").trim();
+  const safeAttr = String(attr || "").trim();
+  if (!safeXPath) return prev;
+
+  const overrides =
+    prev.public_content_overrides && typeof prev.public_content_overrides === "object" ? prev.public_content_overrides : {};
+  const existingList = Array.isArray(overrides[safeRoute]) ? overrides[safeRoute] : [];
+  if (existingList.length === 0) return prev;
+
+  const nextList = existingList.filter(
+    (item) => !(String(item?.xpath || "").trim() === safeXPath && String(item?.attr || "").trim() === safeAttr)
+  );
+
+  if (nextList.length === existingList.length) return prev;
+
+  return {
+    ...prev,
+    public_content_overrides: {
+      ...overrides,
+      [safeRoute]: nextList,
+    },
+  };
+}
+
+function applyXPathStyles(prev, { route, xpath, styles }) {
+  const safeRoute = String(route || "/").trim() || "/";
+  const safeXPath = String(xpath || "").trim();
+  if (!safeXPath) return prev;
+
+  const nextStyles = styles && typeof styles === "object" && !Array.isArray(styles) ? styles : {};
+
+  const overrides =
+    prev.public_content_overrides && typeof prev.public_content_overrides === "object" ? prev.public_content_overrides : {};
+  const existingList = Array.isArray(overrides[safeRoute]) ? overrides[safeRoute].slice() : [];
+  const index = existingList.findIndex((item) => String(item?.xpath || "").trim() === safeXPath && !String(item?.attr || "").trim());
+
+  if (index >= 0) {
+    const current = existingList[index] && typeof existingList[index] === "object" ? existingList[index] : { xpath: safeXPath };
+    const merged = {
+      ...current,
+      xpath: safeXPath,
+      styles: {
+        ...(current.styles && typeof current.styles === "object" && !Array.isArray(current.styles) ? current.styles : {}),
+        ...nextStyles,
+      },
+    };
+    existingList[index] = merged;
+  } else {
+    existingList.push({ xpath: safeXPath, styles: { ...nextStyles } });
+  }
+
+  return {
+    ...prev,
+    public_content_overrides: {
+      ...overrides,
+      [safeRoute]: existingList,
+    },
+  };
+}
+
+function removeXPathStyles(prev, { route, xpath }) {
+  const safeRoute = String(route || "/").trim() || "/";
+  const safeXPath = String(xpath || "").trim();
+  if (!safeXPath) return prev;
+
+  const overrides =
+    prev.public_content_overrides && typeof prev.public_content_overrides === "object" ? prev.public_content_overrides : {};
+  const existingList = Array.isArray(overrides[safeRoute]) ? overrides[safeRoute].slice() : [];
+  const index = existingList.findIndex((item) => String(item?.xpath || "").trim() === safeXPath && !String(item?.attr || "").trim());
+  if (index < 0) return prev;
+
+  const current = existingList[index] && typeof existingList[index] === "object" ? existingList[index] : null;
+  if (!current || !current.styles) return prev;
+
+  const next = { ...current };
+  delete next.styles;
+  existingList[index] = next;
+
+  return {
+    ...prev,
+    public_content_overrides: {
+      ...overrides,
+      [safeRoute]: existingList,
+    },
+  };
+}
+
+function cssColorToHex(value) {
+  const raw = String(value || "").trim();
+  if (!raw) return "";
+  if (raw.startsWith("#")) return raw;
+
+  const rgbMatch = raw.match(/rgba?\s*\(\s*(\d+)[,\s]+(\d+)[,\s]+(\d+)/i);
+  if (!rgbMatch) return "";
+  const r = Math.min(255, Math.max(0, Number(rgbMatch[1])));
+  const g = Math.min(255, Math.max(0, Number(rgbMatch[2])));
+  const b = Math.min(255, Math.max(0, Number(rgbMatch[3])));
+  const toHex = (n) => n.toString(16).padStart(2, "0");
+  return `#${toHex(r)}${toHex(g)}${toHex(b)}`.toUpperCase();
 }
 
 export default function ThemeEditor() {
@@ -99,12 +244,33 @@ export default function ThemeEditor() {
       public_radius: "0.5rem",
       public_home_hero_image: "",
       public_home_promo_image: "",
+      public_category_card_bg_image: "",
+      public_home_hero_overlay_color: "#000000",
+      public_home_hero_overlay_opacity: "0",
+      public_home_promo_overlay_color: "#000000",
+      public_home_promo_overlay_opacity: "0",
+      public_category_card_overlay_color: "#000000",
+      public_category_card_overlay_opacity: "0",
       public_home_sections: [],
       public_home_content: {},
     })
   );
 
+  const lastSavedSnapshotRef = useRef("");
+  const [savedVersion, setSavedVersion] = useState(0);
+
   const [isApplyDialogOpen, setIsApplyDialogOpen] = useState(false);
+  const [imageDialog, setImageDialog] = useState({
+    open: false,
+    kind: "",
+    label: "",
+    key: "",
+    route: "",
+    xpath: "",
+    attr: "",
+    current: "",
+  });
+  const [selectedText, setSelectedText] = useState(null);
   const [previewReady, setPreviewReady] = useState(false);
   const quickRoutes = useMemo(
     () => [
@@ -119,21 +285,9 @@ export default function ThemeEditor() {
     []
   );
 
-  const draftSettings = useMemo(
-    () => ({
-      public_primary_color: String(draft.public_primary_color || DEFAULT_PRIMARY_COLOR).trim(),
-      public_layout: String(draft.public_layout || "classic").trim(),
-      public_logo_url: String(draft.public_logo_url || "").trim(),
-      public_radius: String(draft.public_radius || "0.5rem").trim(),
-      public_home_hero_image: String(draft.public_home_hero_image || "").trim(),
-      public_home_promo_image: String(draft.public_home_promo_image || "").trim(),
-      public_home_sections: Array.isArray(draft.public_home_sections) ? draft.public_home_sections : [],
-      public_home_content: draft.public_home_content && typeof draft.public_home_content === "object" ? draft.public_home_content : {},
-      public_content_overrides:
-        draft.public_content_overrides && typeof draft.public_content_overrides === "object" ? draft.public_content_overrides : {},
-    }),
-    [draft]
-  );
+  const draftSettings = useMemo(() => settingsFromDraft(draft), [draft]);
+  const currentSnapshot = useMemo(() => snapshotFromDraft(draft), [draft]);
+  const isDirty = useMemo(() => Boolean(lastSavedSnapshotRef.current) && currentSnapshot !== lastSavedSnapshotRef.current, [currentSnapshot, savedVersion]);
 
   useEffect(() => {
     let active = true;
@@ -144,19 +298,27 @@ export default function ThemeEditor() {
         setError("");
         setMessage("");
         setPreviewReady(false);
+        lastSavedSnapshotRef.current = "";
+        setSavedVersion((v) => v + 1);
 
         if (themeId) {
           const result = await adminApi.getPublicTheme(themeId);
           if (!active) return;
           const preset = result?.preset || null;
           if (!preset) throw new Error("Theme not found.");
-          setDraft(normalizeDraft({ id: preset.id, name: preset.name, settings: preset.settings }));
+          const nextDraft = normalizeDraft({ id: preset.id, name: preset.name, settings: preset.settings });
+          lastSavedSnapshotRef.current = snapshotFromDraft(nextDraft);
+          setSavedVersion((v) => v + 1);
+          setDraft(nextDraft);
           return;
         }
 
         const settings = await adminApi.getThemeSettings();
         if (!active) return;
-        setDraft(normalizeDraft({ id: "", name: "Theme", settings }));
+        const nextDraft = normalizeDraft({ id: "", name: "Theme", settings });
+        lastSavedSnapshotRef.current = snapshotFromDraft(nextDraft);
+        setSavedVersion((v) => v + 1);
+        setDraft(nextDraft);
       } catch (loadError) {
         if (!active) return;
         setError(loadError instanceof Error ? loadError.message : "Failed to load theme.");
@@ -177,6 +339,54 @@ export default function ThemeEditor() {
       if (origin && event?.origin && event.origin !== origin) return;
       const data = event?.data;
       if (!data || typeof data !== "object") return;
+
+      if (data.type === "theme-editor:select") {
+        const mode = String(data.mode || "").trim();
+        const route = String(data.route || "/").trim() || "/";
+        const xpath = String(data.xpath || "").trim();
+        const key = String(data.key || "").trim();
+        const tag = String(data.tag || "").trim();
+        const value = typeof data.value === "string" ? data.value : String(data.value ?? "");
+        const styles = data.styles && typeof data.styles === "object" && !Array.isArray(data.styles) ? data.styles : null;
+        if (mode === "key" || mode === "xpath") {
+          setSelectedText({ mode, route, xpath, key, tag, value, styles });
+        }
+        return;
+      }
+
+      if (data.type === "theme-editor:image") {
+        const mode = String(data.mode || "").trim();
+        if (mode === "key") {
+          const key = String(data.key || "").trim();
+          if (!key) return;
+          setImageDialog({
+            open: true,
+            kind: "key",
+            label: String(data.label || key).trim() || key,
+            key,
+            route: "",
+            xpath: "",
+            attr: "",
+            current: "",
+          });
+        } else if (mode === "xpath") {
+          const route = String(data.route || "/").trim() || "/";
+          const xpath = String(data.xpath || "").trim();
+          const attr = String(data.attr || "src").trim() || "src";
+          if (!xpath) return;
+          setImageDialog({
+            open: true,
+            kind: "xpath",
+            label: attr === "icon" ? "Icon" : "Image",
+            key: "",
+            route,
+            xpath,
+            attr,
+            current: String(data.value || ""),
+          });
+        }
+        return;
+      }
       if (data.type !== "theme-editor:change") return;
       const mode = String(data.mode || "key").trim();
       const value = typeof data.value === "string" ? data.value : String(data.value ?? "");
@@ -197,33 +407,63 @@ export default function ThemeEditor() {
     return () => window.removeEventListener("message", onMessage);
   }, []);
 
+  const resolveDialogValue = () => {
+    if (!imageDialog.open) return "";
+    if (imageDialog.kind === "key") {
+      return String(draft?.[imageDialog.key] || "").trim();
+    }
+    if (imageDialog.kind === "xpath") {
+      const overrides =
+        draft.public_content_overrides && typeof draft.public_content_overrides === "object" ? draft.public_content_overrides : {};
+      const list = Array.isArray(overrides[imageDialog.route]) ? overrides[imageDialog.route] : [];
+      const existing = list.find(
+        (item) => String(item?.xpath || "").trim() === imageDialog.xpath && String(item?.attr || "").trim() === String(imageDialog.attr || "").trim()
+      );
+      return String(existing?.value || imageDialog.current || "").trim();
+    }
+    return "";
+  };
+
+  const overlayConfigForKey = (key) => {
+    const safeKey = String(key || "").trim();
+    if (safeKey === "public_home_hero_image") {
+      return {
+        label: "Hero overlay",
+        colorKey: "public_home_hero_overlay_color",
+        opacityKey: "public_home_hero_overlay_opacity",
+      };
+    }
+    if (safeKey === "public_home_promo_image") {
+      return {
+        label: "Promo overlay",
+        colorKey: "public_home_promo_overlay_color",
+        opacityKey: "public_home_promo_overlay_opacity",
+      };
+    }
+    if (safeKey === "public_category_card_bg_image") {
+      return {
+        label: "Category overlay",
+        colorKey: "public_category_card_overlay_color",
+        opacityKey: "public_category_card_overlay_opacity",
+      };
+    }
+    return null;
+  };
+
   useEffect(() => {
     if (!previewReady) return;
     const iframe = iframeRef.current;
     const target = iframe?.contentWindow;
     if (!target) return;
-
-    const timer = window.setTimeout(() => {
-      try {
-        target.postMessage({ type: "theme-preview", settings: draftSettings }, window.location.origin);
-        target.postMessage({ type: "theme-editor:setMode", mode: editorMode }, window.location.origin);
-      } catch {
-        // Ignore preview postMessage failures.
-      }
-    }, 120);
-
-    return () => window.clearTimeout(timer);
-  }, [draftSettings, previewReady, editorMode]);
-
-  useEffect(() => {
-    const target = iframeRef.current?.contentWindow;
-    if (!target) return;
     try {
+      target.postMessage({ type: "theme-preview", settings: draftSettings }, window.location.origin);
       target.postMessage({ type: "theme-editor:setMode", mode: editorMode }, window.location.origin);
     } catch {
-      // ignore
+      // Ignore preview postMessage failures.
     }
-  }, [editorMode]);
+  }, [draftSettings, previewReady, editorMode]);
+
+  // editorMode is already posted alongside theme settings above.
 
   const buildEditorSrc = (path) => {
     const raw = String(path || "/").trim() || "/";
@@ -270,6 +510,8 @@ export default function ThemeEditor() {
       setMessage("");
       const id = await saveCurrentTheme();
       setMessage(id === draft.id && draft.id ? "Theme updated." : "Theme created.");
+      lastSavedSnapshotRef.current = currentSnapshot;
+      setSavedVersion((v) => v + 1);
     } catch (saveError) {
       setError(saveError instanceof Error ? saveError.message : "Failed to save theme.");
     } finally {
@@ -300,6 +542,8 @@ export default function ThemeEditor() {
       await adminApi.applyPublicTheme(id);
       window.dispatchEvent(new CustomEvent(THEME_UPDATED_EVENT, { detail: { settings: draftSettings } }));
       setMessage("Theme applied.");
+      lastSavedSnapshotRef.current = currentSnapshot;
+      setSavedVersion((v) => v + 1);
     } catch (applyError) {
       setError(applyError instanceof Error ? applyError.message : "Failed to apply theme.");
     } finally {
@@ -325,7 +569,16 @@ export default function ThemeEditor() {
         <Card className="border-border/60 bg-card/90">
           <CardHeader>
             <CardTitle className="flex items-center gap-2 font-display text-xl">
-              Preview {draft.id ? <Badge variant="secondary">Saved</Badge> : <Badge variant="outline">Live</Badge>}
+              Preview{" "}
+              {saving ? (
+                <Badge variant="secondary">Saving</Badge>
+              ) : isDirty ? (
+                <Badge variant="outline">Unsaved</Badge>
+              ) : draft.id ? (
+                <Badge variant="secondary">Saved</Badge>
+              ) : (
+                <Badge variant="outline">Live</Badge>
+              )}
             </CardTitle>
             <CardDescription>
               {editorMode === "edit"
@@ -445,71 +698,313 @@ export default function ThemeEditor() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-sm font-medium">Logo URL</label>
-                <Input
-                  value={draft.public_logo_url}
-                  onChange={(e) => setDraft((p) => ({ ...p, public_logo_url: e.target.value }))}
-                  placeholder="uploads/... or https://..."
-                  disabled={saving}
-                />
-                <div className="flex flex-wrap items-center gap-3">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    disabled={saving}
-                    onChange={async (event) => {
-                      const file = event.target.files && event.target.files[0] ? event.target.files[0] : null;
-                      event.target.value = "";
-                      if (!file) return;
-                      try {
-                        setSaving(true);
-                        setError("");
-                        const uploaded = await uploadFile(file);
-                        const url = uploaded?.url || uploaded?.path || "";
-                        setDraft((p) => ({ ...p, public_logo_url: String(url || "").trim() }));
-                        setMessage("Logo uploaded.");
-                      } catch (uploadError) {
-                        setError(uploadError instanceof Error ? uploadError.message : "Failed to upload logo.");
-                      } finally {
-                        setSaving(false);
-                      }
-                    }}
-                  />
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <span>Preview:</span>
-                    <img
-                      src={resolveAssetUrl(draft.public_logo_url) || ""}
-                      alt="Logo preview"
-                      className="h-8 w-auto rounded bg-white p-1"
-                      onError={(e) => {
-                        e.currentTarget.src = "";
-                      }}
-                    />
-                  </div>
-                </div>
+              <div className="rounded-lg border border-border/60 bg-background/60 p-3 text-sm text-muted-foreground">
+                <p className="font-medium text-foreground">Edit images in the preview</p>
+                <p className="mt-1">
+                  In <span className="font-medium">Edit mode</span>, click any image in the preview to upload/reset it.
+                  For layout backgrounds, click the hero/promo background area or the logo.
+                </p>
               </div>
 
-              <div className="grid gap-4 md:grid-cols-2">
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Hero image URL</label>
-                  <Input
-                    value={draft.public_home_hero_image}
-                    onChange={(e) => setDraft((p) => ({ ...p, public_home_hero_image: e.target.value }))}
-                    placeholder="uploads/... or https://..."
-                    disabled={saving}
-                  />
+              {selectedText?.xpath ? (
+                <div className="rounded-lg border border-border/60 bg-background/60 p-3">
+                  <p className="text-sm font-medium">Selected element</p>
+                  <p className="mt-1 break-words text-xs text-muted-foreground">{selectedText.key ? selectedText.key : selectedText.xpath}</p>
+
+                  <div className="mt-3 grid gap-3 md:grid-cols-2">
+                    <div className="space-y-2">
+                      <label className="text-xs text-muted-foreground">Color</label>
+                      <Input
+                        type="color"
+                        value={cssColorToHex(selectedText.styles?.color) || "#000000"}
+                        onChange={(e) => {
+                          const hex = e.target.value;
+                          setDraft((prev) =>
+                            applyXPathStyles(prev, {
+                              route: selectedText.route,
+                              xpath: selectedText.xpath,
+                              styles: { color: hex },
+                            })
+                          );
+                          setSelectedText((prev) => (prev ? { ...prev, styles: { ...(prev.styles || {}), color: hex } } : prev));
+                        }}
+                        disabled={saving}
+                        className="h-10 w-20 p-1"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs text-muted-foreground">Font size</label>
+                      <select
+                        value={String(selectedText.styles?.fontSize || "").trim()}
+                        onChange={(e) => {
+                          const next = e.target.value;
+                          setDraft((prev) =>
+                            applyXPathStyles(prev, {
+                              route: selectedText.route,
+                              xpath: selectedText.xpath,
+                              styles: { fontSize: next },
+                            })
+                          );
+                          setSelectedText((prev) => (prev ? { ...prev, styles: { ...(prev.styles || {}), fontSize: next } } : prev));
+                        }}
+                        disabled={saving}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <option value="">(keep)</option>
+                        <option value="12px">12</option>
+                        <option value="14px">14</option>
+                        <option value="16px">16</option>
+                        <option value="18px">18</option>
+                        <option value="24px">24</option>
+                        <option value="32px">32</option>
+                        <option value="40px">40</option>
+                        <option value="48px">48</option>
+                        <option value="56px">56</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs text-muted-foreground">Font weight</label>
+                      <select
+                        value={String(selectedText.styles?.fontWeight || "").trim()}
+                        onChange={(e) => {
+                          const next = e.target.value;
+                          setDraft((prev) =>
+                            applyXPathStyles(prev, {
+                              route: selectedText.route,
+                              xpath: selectedText.xpath,
+                              styles: { fontWeight: next },
+                            })
+                          );
+                          setSelectedText((prev) => (prev ? { ...prev, styles: { ...(prev.styles || {}), fontWeight: next } } : prev));
+                        }}
+                        disabled={saving}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <option value="">(keep)</option>
+                        <option value="400">Regular</option>
+                        <option value="500">Medium</option>
+                        <option value="600">Semibold</option>
+                        <option value="700">Bold</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs text-muted-foreground">Align</label>
+                      <select
+                        value={String(selectedText.styles?.textAlign || "").trim()}
+                        onChange={(e) => {
+                          const next = e.target.value;
+                          setDraft((prev) =>
+                            applyXPathStyles(prev, {
+                              route: selectedText.route,
+                              xpath: selectedText.xpath,
+                              styles: { textAlign: next },
+                            })
+                          );
+                          setSelectedText((prev) => (prev ? { ...prev, styles: { ...(prev.styles || {}), textAlign: next } } : prev));
+                        }}
+                        disabled={saving}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <option value="">(keep)</option>
+                        <option value="left">Left</option>
+                        <option value="center">Center</option>
+                        <option value="right">Right</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs text-muted-foreground">Font family</label>
+                      <select
+                        value={String(selectedText.styles?.fontFamily || "").trim()}
+                        onChange={(e) => {
+                          const next = e.target.value;
+                          setDraft((prev) =>
+                            applyXPathStyles(prev, {
+                              route: selectedText.route,
+                              xpath: selectedText.xpath,
+                              styles: { fontFamily: next },
+                            })
+                          );
+                          setSelectedText((prev) => (prev ? { ...prev, styles: { ...(prev.styles || {}), fontFamily: next } } : prev));
+                        }}
+                        disabled={saving}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <option value="">(keep)</option>
+                        <option value="inherit">Inherit</option>
+                        <option value="system-ui">System</option>
+                        <option value="Inter, sans-serif">Inter</option>
+                        <option value="Poppins, sans-serif">Poppins</option>
+                        <option value="Montserrat, sans-serif">Montserrat</option>
+                        <option value="serif">Serif</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs text-muted-foreground">Transform</label>
+                      <select
+                        value={String(selectedText.styles?.textTransform || "").trim()}
+                        onChange={(e) => {
+                          const next = e.target.value;
+                          setDraft((prev) =>
+                            applyXPathStyles(prev, {
+                              route: selectedText.route,
+                              xpath: selectedText.xpath,
+                              styles: { textTransform: next },
+                            })
+                          );
+                          setSelectedText((prev) => (prev ? { ...prev, styles: { ...(prev.styles || {}), textTransform: next } } : prev));
+                        }}
+                        disabled={saving}
+                        className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                      >
+                        <option value="">(keep)</option>
+                        <option value="none">None</option>
+                        <option value="uppercase">Uppercase</option>
+                        <option value="lowercase">Lowercase</option>
+                        <option value="capitalize">Capitalize</option>
+                      </select>
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs text-muted-foreground">Width</label>
+                      <Input
+                        value={String(selectedText.styles?.width || "").trim()}
+                        onChange={(e) => {
+                          const next = e.target.value;
+                          setDraft((prev) =>
+                            applyXPathStyles(prev, {
+                              route: selectedText.route,
+                              xpath: selectedText.xpath,
+                              styles: { width: next },
+                            })
+                          );
+                          setSelectedText((prev) => (prev ? { ...prev, styles: { ...(prev.styles || {}), width: next } } : prev));
+                        }}
+                        disabled={saving}
+                        placeholder="(keep) e.g. 100% / 320px"
+                        className="h-10"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs text-muted-foreground">Height</label>
+                      <Input
+                        value={String(selectedText.styles?.height || "").trim()}
+                        onChange={(e) => {
+                          const next = e.target.value;
+                          setDraft((prev) =>
+                            applyXPathStyles(prev, {
+                              route: selectedText.route,
+                              xpath: selectedText.xpath,
+                              styles: { height: next },
+                            })
+                          );
+                          setSelectedText((prev) => (prev ? { ...prev, styles: { ...(prev.styles || {}), height: next } } : prev));
+                        }}
+                        disabled={saving}
+                        placeholder="(keep) e.g. auto / 64px"
+                        className="h-10"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs text-muted-foreground">Padding</label>
+                      <Input
+                        value={String(selectedText.styles?.padding || "").trim()}
+                        onChange={(e) => {
+                          const next = e.target.value;
+                          setDraft((prev) =>
+                            applyXPathStyles(prev, {
+                              route: selectedText.route,
+                              xpath: selectedText.xpath,
+                              styles: { padding: next },
+                            })
+                          );
+                          setSelectedText((prev) => (prev ? { ...prev, styles: { ...(prev.styles || {}), padding: next } } : prev));
+                        }}
+                        disabled={saving}
+                        placeholder="(keep) e.g. 12px 20px"
+                        className="h-10"
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <label className="text-xs text-muted-foreground">Border radius</label>
+                      <Input
+                        value={String(selectedText.styles?.borderRadius || "").trim()}
+                        onChange={(e) => {
+                          const next = e.target.value;
+                          setDraft((prev) =>
+                            applyXPathStyles(prev, {
+                              route: selectedText.route,
+                              xpath: selectedText.xpath,
+                              styles: { borderRadius: next },
+                            })
+                          );
+                          setSelectedText((prev) => (prev ? { ...prev, styles: { ...(prev.styles || {}), borderRadius: next } } : prev));
+                        }}
+                        disabled={saving}
+                        placeholder="(keep) e.g. 9999px"
+                        className="h-10"
+                      />
+                    </div>
+                  </div>
+
+                  {["button", "a"].includes(String(selectedText.tag || "").toLowerCase()) ? (
+                    <div className="mt-3 flex flex-wrap items-center gap-2">
+                      <Button
+                        variant="secondary"
+                        onClick={() => {
+                          const styles = { backgroundColor: "#000000", color: "#FFFFFF", borderWidth: "0px" };
+                          setDraft((prev) => applyXPathStyles(prev, { route: selectedText.route, xpath: selectedText.xpath, styles }));
+                          setSelectedText((prev) => (prev ? { ...prev, styles: { ...(prev.styles || {}), ...styles } } : prev));
+                        }}
+                        disabled={saving}
+                      >
+                        Filled
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        onClick={() => {
+                          const styles = { backgroundColor: "transparent", color: "#000000", borderWidth: "1px", borderColor: "#000000" };
+                          setDraft((prev) => applyXPathStyles(prev, { route: selectedText.route, xpath: selectedText.xpath, styles }));
+                          setSelectedText((prev) => (prev ? { ...prev, styles: { ...(prev.styles || {}), ...styles } } : prev));
+                        }}
+                        disabled={saving}
+                      >
+                        Outline
+                      </Button>
+                      <Button
+                        variant="secondary"
+                        onClick={() => {
+                          const styles = { borderRadius: "9999px" };
+                          setDraft((prev) => applyXPathStyles(prev, { route: selectedText.route, xpath: selectedText.xpath, styles }));
+                          setSelectedText((prev) => (prev ? { ...prev, styles: { ...(prev.styles || {}), ...styles } } : prev));
+                        }}
+                        disabled={saving}
+                      >
+                        Pill
+                      </Button>
+                    </div>
+                  ) : null}
+
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
+                    <Button
+                      variant="secondary"
+                      onClick={() => {
+                        setDraft((prev) => removeXPathStyles(prev, { route: selectedText.route, xpath: selectedText.xpath }));
+                      }}
+                      disabled={saving}
+                    >
+                      Reset styles
+                    </Button>
+                  </div>
                 </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">Promo image URL</label>
-                  <Input
-                    value={draft.public_home_promo_image}
-                    onChange={(e) => setDraft((p) => ({ ...p, public_home_promo_image: e.target.value }))}
-                    placeholder="uploads/... or https://..."
-                    disabled={saving}
-                  />
-                </div>
-              </div>
+              ) : null}
 
               <div className="flex flex-wrap items-center gap-2">
                 <Button variant="outline" onClick={() => void onSave()} disabled={saving || loading}>
@@ -546,6 +1041,198 @@ export default function ThemeEditor() {
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
             <AlertDialogAction onClick={() => void onApply()}>Yes, apply</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      <AlertDialog
+        open={imageDialog.open}
+        onOpenChange={(next) => setImageDialog((prev) => ({ ...prev, open: next }))}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>{imageDialog.label ? `Edit ${imageDialog.label}` : "Edit image"}</AlertDialogTitle>
+            <AlertDialogDescription>Upload a new image or reset/remove it.</AlertDialogDescription>
+          </AlertDialogHeader>
+
+          <div className="space-y-3">
+            <div className="flex h-40 w-full items-center justify-center overflow-hidden rounded-lg border border-border/60 bg-muted/30">
+              {resolveDialogValue() && resolveDialogValue() !== "__none__" ? (
+                <img
+                  src={resolveAssetUrl(resolveDialogValue()) || ""}
+                  alt="Selected preview"
+                  className="h-full w-full object-cover"
+                  onError={(e) => {
+                    e.currentTarget.src = "";
+                  }}
+                />
+              ) : (
+                <span className="text-sm text-muted-foreground">
+                  {resolveDialogValue() === "__none__" ? "No image (deleted)" : imageDialog.kind === "key" ? "Using default image" : "No image selected"}
+                </span>
+              )}
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                type="file"
+                accept="image/*"
+                className="hidden"
+                id="theme-image-upload"
+                onChange={async (event) => {
+                  const file = event.target.files && event.target.files[0] ? event.target.files[0] : null;
+                  event.target.value = "";
+                  if (!file) return;
+                  try {
+                    setSaving(true);
+                    setError("");
+                    const uploaded = await uploadFile(file);
+                    const url = String(uploaded?.url || uploaded?.path || "").trim();
+                    if (!url) throw new Error("Upload failed.");
+
+                    if (imageDialog.kind === "key" && imageDialog.key) {
+                      setDraft((prev) => ({ ...prev, [imageDialog.key]: url }));
+                    } else if (imageDialog.kind === "xpath" && imageDialog.xpath) {
+                      setDraft((prev) =>
+                        applyXPathOverride(prev, {
+                          route: imageDialog.route,
+                          xpath: imageDialog.xpath,
+                          attr: imageDialog.attr || "src",
+                          value: url,
+                        })
+                      );
+                    }
+
+                    setMessage("Image uploaded.");
+                    setImageDialog((prev) => ({ ...prev, open: false }));
+                  } catch (uploadError) {
+                    setError(uploadError instanceof Error ? uploadError.message : "Failed to upload image.");
+                  } finally {
+                    setSaving(false);
+                  }
+                }}
+              />
+              <Button
+                variant="default"
+                onClick={() => {
+                  const input = document.getElementById("theme-image-upload");
+                  if (input && input instanceof HTMLInputElement) input.click();
+                }}
+                disabled={saving}
+              >
+                Upload image
+              </Button>
+              {imageDialog.kind === "key" ? (
+                <>
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      if (!imageDialog.key) return;
+                      setDraft((prev) => ({ ...prev, [imageDialog.key]: "" }));
+                      setImageDialog((prev) => ({ ...prev, open: false }));
+                    }}
+                    disabled={saving || resolveDialogValue() === ""}
+                  >
+                    Use default
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => {
+                      if (!imageDialog.key) return;
+                      setDraft((prev) => ({ ...prev, [imageDialog.key]: "__none__" }));
+                      setImageDialog((prev) => ({ ...prev, open: false }));
+                    }}
+                    disabled={saving || resolveDialogValue() === "__none__"}
+                  >
+                    Delete image
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button
+                    variant="secondary"
+                    onClick={() => {
+                      if (!imageDialog.xpath) return;
+                      setDraft((prev) =>
+                        removeXPathOverride(prev, {
+                          route: imageDialog.route,
+                          xpath: imageDialog.xpath,
+                          attr: imageDialog.attr || "src",
+                        })
+                      );
+                      setImageDialog((prev) => ({ ...prev, open: false }));
+                    }}
+                    disabled={saving}
+                  >
+                    Reset
+                  </Button>
+                  <Button
+                    variant="destructive"
+                    onClick={() => {
+                      if (!imageDialog.xpath) return;
+                      setDraft((prev) =>
+                        applyXPathOverride(prev, {
+                          route: imageDialog.route,
+                          xpath: imageDialog.xpath,
+                          attr: imageDialog.attr || "src",
+                          value: "",
+                        })
+                      );
+                      setImageDialog((prev) => ({ ...prev, open: false }));
+                    }}
+                    disabled={saving}
+                  >
+                    Delete image
+                  </Button>
+                </>
+              )}
+            </div>
+
+            {imageDialog.kind === "key" ? (
+              (() => {
+                const overlay = overlayConfigForKey(imageDialog.key);
+                if (!overlay) return null;
+                const color = String(draft?.[overlay.colorKey] || "#000000").trim();
+                const opacity = Number(draft?.[overlay.opacityKey] ?? 0);
+                return (
+                  <div className="rounded-lg border border-border/60 bg-background/60 p-3">
+                    <p className="text-sm font-medium">{overlay.label}</p>
+                    <div className="mt-3 grid gap-3 md:grid-cols-2">
+                      <div className="space-y-2">
+                        <label className="text-xs text-muted-foreground">Color</label>
+                        <Input
+                          type="color"
+                          value={color}
+                          onChange={(e) => setDraft((p) => ({ ...p, [overlay.colorKey]: e.target.value }))}
+                          disabled={saving}
+                          className="h-10 w-20 p-1"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <label className="text-xs text-muted-foreground">Opacity ({Math.round(opacity * 100)}%)</label>
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          step="1"
+                          value={Number.isFinite(opacity) ? Math.round(opacity * 100) : 0}
+                          disabled={saving}
+                          onChange={(e) => {
+                            const next = Math.min(Math.max(Number(e.target.value) / 100, 0), 1);
+                            setDraft((p) => ({ ...p, [overlay.opacityKey]: String(next) }));
+                          }}
+                          className="w-full"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                );
+              })()
+            ) : null}
+          </div>
+
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={saving}>Close</AlertDialogCancel>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>

@@ -10,6 +10,10 @@ const OVERRIDABLE_VARS = [
   '--radius',
   '--hero-bg-image',
   '--promo-bg-image',
+  '--category-card-bg-image',
+  '--hero-overlay-color',
+  '--promo-overlay-color',
+  '--category-card-overlay-color',
   '--sidebar-background',
   '--sidebar-foreground',
   '--sidebar-primary',
@@ -138,15 +142,56 @@ export function applyThemeSettings(settings) {
     document.documentElement.style.setProperty('--radius', radius)
   }
 
-  const heroImage = resolveAssetUrl(settings?.public_home_hero_image || '')
-  if (heroImage) {
-    document.documentElement.style.setProperty('--hero-bg-image', `url("${heroImage}")`)
+  const root = document.documentElement
+
+  const applyImageVar = ({ settingValue, cssVar }) => {
+    const raw = String(settingValue || '').trim()
+    if (raw === '__none__') {
+      root.style.setProperty(cssVar, 'none')
+      return
+    }
+    const resolved = resolveAssetUrl(raw)
+    if (resolved) {
+      root.style.setProperty(cssVar, `url("${resolved}")`)
+      return
+    }
+    root.style.removeProperty(cssVar)
   }
 
-  const promoImage = resolveAssetUrl(settings?.public_home_promo_image || '')
-  if (promoImage) {
-    document.documentElement.style.setProperty('--promo-bg-image', `url("${promoImage}")`)
+  applyImageVar({ settingValue: settings?.public_home_hero_image, cssVar: '--hero-bg-image' })
+  applyImageVar({ settingValue: settings?.public_home_promo_image, cssVar: '--promo-bg-image' })
+  applyImageVar({ settingValue: settings?.public_category_card_bg_image, cssVar: '--category-card-bg-image' })
+
+  const applyOverlay = ({ color, opacity, cssVar }) => {
+    const normalized = normalizeHexColor(color)
+    const alpha = Number(opacity)
+    if (!normalized || Number.isNaN(alpha) || alpha <= 0) {
+      root.style.removeProperty(cssVar)
+      return
+    }
+    const rgb = hexToRgb(normalized)
+    if (!rgb) {
+      root.style.removeProperty(cssVar)
+      return
+    }
+    root.style.setProperty(cssVar, `rgba(${rgb.r}, ${rgb.g}, ${rgb.b}, ${Math.min(Math.max(alpha, 0), 1)})`)
   }
+
+  applyOverlay({
+    color: settings?.public_home_hero_overlay_color,
+    opacity: settings?.public_home_hero_overlay_opacity,
+    cssVar: '--hero-overlay-color',
+  })
+  applyOverlay({
+    color: settings?.public_home_promo_overlay_color,
+    opacity: settings?.public_home_promo_overlay_opacity,
+    cssVar: '--promo-overlay-color',
+  })
+  applyOverlay({
+    color: settings?.public_category_card_overlay_color,
+    opacity: settings?.public_category_card_overlay_opacity,
+    cssVar: '--category-card-overlay-color',
+  })
 
   return { public_primary_color: primary, primary_color: primary, public_radius: radius }
 }

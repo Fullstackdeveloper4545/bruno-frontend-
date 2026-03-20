@@ -118,6 +118,8 @@ const Navbar = () => {
                                 src={logoSrc}
                                 alt='Logo'
                                 className='h-8 md:h-10 object-contain'
+                                data-theme-image='public_logo_url'
+                                data-theme-image-label='Logo'
                                 onError={() => setLogoSrc(logo)}
                             />
                         </div>
