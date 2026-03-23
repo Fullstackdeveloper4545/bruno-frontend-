@@ -112,8 +112,8 @@ const ThankYouPage = () => {
   return (
     <>
       <Navbar />
-      <section className='bg-white min-h-[70vh] font-["Poppins",sans-serif]'>
-        <div className='pt-16 pb-12 text-center px-4'>
+      <section className='bg-white min-h-[70vh] font-["Poppins",sans-serif] flex flex-col' data-theme-layout-root='thank-you'>
+        <div className='pt-16 pb-12 text-center px-4' data-theme-layout-section='header'>
           <h1 className='m-0 text-[58px] font-medium leading-none text-[#111111]'>
             OBRIGADO PELA SUA ENCOMENDA!
           </h1>
@@ -134,7 +134,7 @@ const ThankYouPage = () => {
           {error ? <p className='mt-3 text-[12px] text-[#b42318]'>{error}</p> : null}
         </div>
 
-        <div className='bg-primary py-12 text-primary-foreground'>
+        <div className='bg-primary py-12 text-primary-foreground' data-theme-layout-section='items'>
           <div className='flex items-center justify-center gap-4 px-4 flex-wrap'>
             {previewItems.length > 0 ? (
               previewItems.map((item) => (
@@ -151,7 +151,7 @@ const ThankYouPage = () => {
           </p>
         </div>
 
-        <div className='py-16 flex justify-center px-4'>
+        <div className='py-16 flex justify-center px-4' data-theme-layout-section='cta'>
           <Link
             to='/'
             className='w-full max-w-[328px] bg-primary text-primary-foreground text-[10px] tracking-[1px] py-3 text-center'

@@ -110,30 +110,36 @@ const BlogsPage = () => {
   return (
     <>
       <Navbar />
-      <section className='bg-[#efefef] py-12 min-h-[70vh]'>
-        <div className='w-[90vw] max-w-[1150px] mx-auto'>
-          <h1 className='m-0 text-[42px] font-normal text-black'>Blog</h1>
-          <p className='mt-3 mb-8 max-w-[500px] text-[16px] leading-[1.45] text-black/80'>
-            Ipsum sit id Morbi est non, dignissim, libero. Donec dolor sed vitae ex laoreet ex
-            non, elit lorem, hendrerit amet, elit ex.
-          </p>
-          {loading ? <p className='mb-6 text-[13px] text-black/60'>Loading blogs...</p> : null}
-          {error ? <p className='mb-6 text-[13px] text-[#b42318]'>Live blogs unavailable. Showing fallback items.</p> : null}
-
-          <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-10'>
-            {visiblePosts.map((post) => (
-              <BlogCard
-                key={post.id}
-                image={post.image}
-                title={post.title}
-                date={post.date}
-                linkText='Ler mais'
-                to={post.to}
-              />
-            ))}
+      <main className='bg-[#efefef] py-12 min-h-[70vh]' data-theme-layout-root='blogs'>
+        <section data-theme-layout-section='intro'>
+          <div className='w-[90vw] max-w-[1150px] mx-auto'>
+            <h1 className='m-0 text-[42px] font-normal text-black'>Blog</h1>
+            <p className='mt-3 mb-8 max-w-[500px] text-[16px] leading-[1.45] text-black/80'>
+              Ipsum sit id Morbi est non, dignissim, libero. Donec dolor sed vitae ex laoreet ex
+              non, elit lorem, hendrerit amet, elit ex.
+            </p>
+            {loading ? <p className='mb-6 text-[13px] text-black/60'>Loading blogs...</p> : null}
+            {error ? <p className='mb-6 text-[13px] text-[#b42318]'>Live blogs unavailable. Showing fallback items.</p> : null}
           </div>
-        </div>
-      </section>
+        </section>
+
+        <section data-theme-layout-section='list'>
+          <div className='w-[90vw] max-w-[1150px] mx-auto'>
+            <div className='grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-4 gap-y-10'>
+              {visiblePosts.map((post) => (
+                <BlogCard
+                  key={post.id}
+                  image={post.image}
+                  title={post.title}
+                  date={post.date}
+                  linkText='Ler mais'
+                  to={post.to}
+                />
+              ))}
+            </div>
+          </div>
+        </section>
+      </main>
       <Footer />
     </>
   )

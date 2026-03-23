@@ -159,7 +159,8 @@ function normalizeHomeSections(raw, layout) {
   for (const entry of raw) {
     const key = typeof entry === 'string' ? entry : entry?.key
     const safeKey = String(key || '').trim()
-    if (!safeKey || !allowed.has(safeKey) || seen.has(safeKey)) continue
+    const isCustom = safeKey.startsWith('custom:')
+    if (!safeKey || (!isCustom && !allowed.has(safeKey)) || seen.has(safeKey)) continue
     seen.add(safeKey)
     const enabled = typeof entry === 'object' && entry ? entry.enabled !== false : true
     normalized.push({ key: safeKey, enabled })
@@ -179,6 +180,26 @@ function normalizeHomeContent(raw) {
   for (const key of Object.keys(DEFAULT_HOME_CONTENT)) {
     if (safe[key] == null) continue
     next[key] = String(safe[key])
+  }
+  return next
+}
+
+function normalizeHomeCustomSections(raw) {
+  const safe = raw && typeof raw === 'object' && !Array.isArray(raw) ? raw : {}
+  const next = {}
+  for (const [id, value] of Object.entries(safe)) {
+    const safeId = String(id || '').trim()
+    if (!safeId) continue
+    const section = value && typeof value === 'object' && !Array.isArray(value) ? value : {}
+    const type = String(section.type || 'text').trim() || 'text'
+    next[safeId] = {
+      type,
+      title: String(section.title || '').trim(),
+      body: String(section.body || '').trim(),
+      image_url: String(section.image_url || '').trim(),
+      button_label: String(section.button_label || '').trim(),
+      button_href: String(section.button_href || '/products').trim() || '/products',
+    }
   }
   return next
 }
@@ -349,6 +370,7 @@ function App() {
   const [publicLayout, setPublicLayout] = useState('classic')
   const [homeSections, setHomeSections] = useState(() => buildDefaultHomeSections('classic'))
   const [homeContent, setHomeContent] = useState(() => normalizeHomeContent(null))
+  const [homeCustomSections, setHomeCustomSections] = useState(() => ({}))
   const publicLayoutRef = useRef('classic')
 
   useEffect(() => {
@@ -367,11 +389,13 @@ function App() {
         setPublicLayout(layout)
         setHomeSections(normalizeHomeSections(settings?.public_home_sections, layout))
         setHomeContent(normalizeHomeContent(settings?.public_home_content))
+        setHomeCustomSections(normalizeHomeCustomSections(settings?.public_home_custom_sections))
       } catch (error) {
         if (!active || error?.name === 'AbortError') return
         setPublicLayout('classic')
         setHomeSections(buildDefaultHomeSections('classic'))
         setHomeContent(normalizeHomeContent(null))
+        setHomeCustomSections({})
       }
     }
 
@@ -389,6 +413,9 @@ function App() {
       }
       if (Object.prototype.hasOwnProperty.call(payload, 'public_home_content')) {
         setHomeContent(normalizeHomeContent(payload?.public_home_content))
+      }
+      if (Object.prototype.hasOwnProperty.call(payload, 'public_home_custom_sections')) {
+        setHomeCustomSections(normalizeHomeCustomSections(payload?.public_home_custom_sections))
       }
     }
 
@@ -534,10 +561,10 @@ function App() {
   return (
     <>
       <Navbar />
-      <div className='flex flex-col'>
+      <div className='flex flex-col' data-theme-layout-root='home'>
 
       {isSectionEnabled('hero') ? (
-        <section className='bg-white' style={{ order: sectionOrder.hero }}>
+        <section className='bg-white' style={{ order: sectionOrder.hero }} data-theme-layout-section='hero'>
           <div className='hero-bg h-[90vh]' data-theme-image='public_home_hero_image' data-theme-image-label='Hero image'>
             <div className='w-full md:w-3/12 text-white flex flex-col justify-center h-[90vh] md:ml-[10%] px-6 md:px-0'>
               <h1 className='text-[32px] md:text-[46px]' data-theme-edit='public_home_content.hero_title'>
@@ -564,7 +591,11 @@ function App() {
       ) : null}
 
       {isSectionEnabled('athlete') ? (
-        <section className='mt-[10vh] flex flex-col items-center' style={{ order: sectionOrder.athlete }}>
+        <section
+          className='mt-[10vh] flex flex-col items-center'
+          style={{ order: sectionOrder.athlete }}
+          data-theme-layout-section='athlete'
+        >
           <div className='text-center'>
             <h1 className='text-[24px]' data-theme-edit='public_home_content.athlete_title'>
               {homeContent.athlete_title}
@@ -616,7 +647,7 @@ function App() {
       ) : null}
 
       {isSectionEnabled('categories') ? (
-      <section style={{ order: sectionOrder.categories }}>
+      <section style={{ order: sectionOrder.categories }} data-theme-layout-section='categories'>
         <h1 className='text-[24px] text-center' data-theme-edit='public_home_content.categories_title'>
           {homeContent.categories_title}
         </h1>
@@ -652,7 +683,11 @@ function App() {
       ) : null}
 
       {isSectionEnabled('performance') ? (
-      <section className='mt-[10vh] flex flex-col items-center' style={{ order: sectionOrder.performance }}>
+      <section
+        className='mt-[10vh] flex flex-col items-center'
+        style={{ order: sectionOrder.performance }}
+        data-theme-layout-section='performance'
+      >
         <div className='text-center'>
           <h1 className='text-[24px]' data-theme-edit='public_home_content.performance_title'>
             {homeContent.performance_title}
@@ -698,7 +733,7 @@ function App() {
       ) : null}
 
       {isSectionEnabled('promo') ? (
-      <section className='mt-[10vh]' style={{ order: sectionOrder.promo }}>
+      <section className='mt-[10vh]' style={{ order: sectionOrder.promo }} data-theme-layout-section='promo'>
         <div className='promo-bg h-[50vh] w-[90vw] mx-auto flex items-center justify-center' data-theme-image='public_home_promo_image' data-theme-image-label='Promo image'>
           <div className='text-center text-white px-8 py-6'>
             <h2 className='text-[32px]' data-theme-edit='public_home_content.promo_title'>
@@ -719,7 +754,7 @@ function App() {
       ) : null}
 
       {isSectionEnabled('brands') ? (
-      <section className='mt-[10vh] mb-[10vh]' style={{ order: sectionOrder.brands }}>
+      <section className='mt-[10vh] mb-[10vh]' style={{ order: sectionOrder.brands }} data-theme-layout-section='brands'>
         <h2 className='text-[32px] text-center mb-6' data-theme-edit='public_home_content.brands_title'>
           {homeContent.brands_title}
         </h2>
@@ -752,7 +787,11 @@ function App() {
       ) : null}
 
       {isSectionEnabled('stores') ? (
-      <section className='mx-auto max-w-[1366px] px-5 sm:px-8 lg:px-[42px] py-[40px] sm:py-[55px] lg:py-[70px] text-center' style={{ order: sectionOrder.stores }}>
+      <section
+        className='mx-auto max-w-[1366px] px-5 sm:px-8 lg:px-[42px] py-[40px] sm:py-[55px] lg:py-[70px] text-center'
+        style={{ order: sectionOrder.stores }}
+        data-theme-layout-section='stores'
+      >
         <h2 className='m-0 text-[28px] sm:text-[32px] leading-[1.04] font-normal text-[#262626]'>
           <span data-theme-edit='public_home_content.stores_title'>{homeContent.stores_title}</span>
         </h2>
@@ -786,7 +825,11 @@ function App() {
       ) : null}
 
       {isSectionEnabled('community') ? (
-      <section className='mt-[10vh] mb-[10vh] flex flex-col items-center' style={{ order: sectionOrder.community }}>
+      <section
+        className='mt-[10vh] mb-[10vh] flex flex-col items-center'
+        style={{ order: sectionOrder.community }}
+        data-theme-layout-section='community'
+      >
         <div className='text-center'>
           <h2 className='text-[32px]' data-theme-edit='public_home_content.community_title'>
             {homeContent.community_title}
@@ -831,7 +874,7 @@ function App() {
       ) : null}
 
       {isSectionEnabled('benefits') ? (
-      <section className='mt-[10vh] mb-[10vh]' style={{ order: sectionOrder.benefits }}>
+      <section className='mt-[10vh] mb-[10vh]' style={{ order: sectionOrder.benefits }} data-theme-layout-section='benefits'>
         <div className='w-[90vw] mx-auto md:hidden'>
           <Swiper
             slidesPerView={1}
@@ -864,6 +907,93 @@ function App() {
         </div>
       </section>
       ) : null}
+
+      {normalizedHomeSections
+        .filter((row) => String(row?.key || '').startsWith('custom:') && row?.enabled !== false)
+        .map((row) => {
+          const key = String(row.key || '').trim()
+          const id = key.slice('custom:'.length).trim()
+          if (!id) return null
+          const section = homeCustomSections?.[id] || { type: 'text' }
+          const type = String(section?.type || 'text').trim() || 'text'
+          const titleKey = `public_home_custom_sections.${id}.title`
+          const bodyKey = `public_home_custom_sections.${id}.body`
+          const imageKey = `public_home_custom_sections.${id}.image_url`
+          const buttonLabelKey = `public_home_custom_sections.${id}.button_label`
+          const href = String(section?.button_href || '/products').trim() || '/products'
+          const imageUrl = String(section?.image_url || '').trim()
+          const showImage = Boolean(imageUrl) && imageUrl !== '__none__'
+
+          return (
+            <section
+              key={key}
+              className='w-[90vw] mx-auto mt-16 rounded-2xl border border-black/10 bg-white p-6 md:p-10'
+              style={{ order: sectionOrder[key] || 9999 }}
+              data-theme-layout-section={key}
+            >
+              {type === 'image' ? (
+                <div className='grid gap-6 lg:grid-cols-[1fr_1.2fr] lg:items-center'>
+                  <div>
+                    <h2 className='m-0 text-[28px] font-semibold' data-theme-edit={titleKey}>
+                      {section?.title || 'New section'}
+                    </h2>
+                    <p className='mt-3 text-[14px] leading-[1.6] text-black/70' data-theme-edit={bodyKey}>
+                      {section?.body || 'Click to edit text.'}
+                    </p>
+                  </div>
+                  <div
+                    className='w-full overflow-hidden rounded-2xl bg-black/[0.04]'
+                    data-theme-image={imageKey}
+                    data-theme-image-label='Custom image'
+                  >
+                    {showImage ? (
+                      <img
+                        src={resolveAssetUrl(imageUrl)}
+                        alt={section?.title || 'Section image'}
+                        className='h-[240px] w-full object-cover md:h-[320px]'
+                      />
+                    ) : (
+                      <div className='flex h-[240px] w-full items-center justify-center text-[12px] text-black/60 md:h-[320px]'>
+                        Click to set image
+                      </div>
+                    )}
+                  </div>
+                </div>
+              ) : type === 'cta' ? (
+                <div className='text-center'>
+                  <h2 className='m-0 text-[28px] font-semibold' data-theme-edit={titleKey}>
+                    {section?.title || 'New section'}
+                  </h2>
+                  <p
+                    className='mx-auto mt-3 max-w-[720px] text-[14px] leading-[1.6] text-black/70'
+                    data-theme-edit={bodyKey}
+                  >
+                    {section?.body || 'Click to edit text.'}
+                  </p>
+                  <a
+                    href={href}
+                    className='mt-6 inline-flex items-center justify-center bg-primary px-8 py-3 text-[12px] tracking-[1px] text-primary-foreground'
+                    data-theme-edit={buttonLabelKey}
+                  >
+                    {section?.button_label || 'Shop now'}
+                  </a>
+                </div>
+              ) : (
+                <div className='text-center'>
+                  <h2 className='m-0 text-[28px] font-semibold' data-theme-edit={titleKey}>
+                    {section?.title || 'New section'}
+                  </h2>
+                  <p
+                    className='mx-auto mt-3 max-w-[720px] text-[14px] leading-[1.6] text-black/70'
+                    data-theme-edit={bodyKey}
+                  >
+                    {section?.body || 'Click to edit text.'}
+                  </p>
+                </div>
+              )}
+            </section>
+          )
+        })}
 
       {homeLoading ? (
         <p className='mb-8 text-center text-[13px] text-[#6b7280]' style={{ order: sectionOrder.loading }}>

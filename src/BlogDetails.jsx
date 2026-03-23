@@ -88,8 +88,9 @@ const BlogDetails = () => {
     <>
       <Navbar />
 
-      <section className='bg-white px-5 py-10 font-["Poppins",sans-serif]'>
-        <div className='w-[80%] mx-auto max-w-none'>
+      <main className='bg-white px-5 py-10 font-["Poppins",sans-serif]' data-theme-layout-root='blog-details'>
+        <section data-theme-layout-section='hero'>
+          <div className='w-[80%] mx-auto max-w-none'>
           {loading ? <p className='mb-6 text-[13px] text-[#6b7280]'>Loading blog...</p> : null}
           {error ? <p className='mb-6 text-[13px] text-[#b42318]'>{error}</p> : null}
 
@@ -101,7 +102,11 @@ const BlogDetails = () => {
             />
           </div>
 
-          <div className='mt-8 max-w-none'>
+          </div>
+        </section>
+
+        <section data-theme-layout-section='content'>
+          <div className='w-[80%] mx-auto max-w-none mt-8 max-w-none'>
             <h1 className='m-0 lg:text-[52px] sm:text-[30px] text-[#111] tracking-[0.4px]'>
               {blog.title}
             </h1>
@@ -115,8 +120,8 @@ const BlogDetails = () => {
               ))}
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </main>
 
       <Footer />
     </>

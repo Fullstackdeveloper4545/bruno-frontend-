@@ -356,8 +356,14 @@ function ProductsPage() {
     <>
       <Navbar />
       <section className='bg-[#fcfcfc] py-8 md:py-12'>
-        <div className='mx-auto flex w-[92vw] max-w-[1380px] flex-col gap-8 lg:grid lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-12'>
-          <aside className='rounded-2xl border border-black/10 bg-white p-5 lg:sticky lg:top-6 lg:h-fit lg:p-6'>
+        <div
+          className='mx-auto flex w-[92vw] max-w-[1380px] flex-col gap-8 lg:grid lg:grid-cols-[280px_minmax(0,1fr)] lg:gap-12'
+          data-theme-layout-root='products'
+        >
+          <aside
+            className='rounded-2xl border border-black/10 bg-white p-5 lg:sticky lg:top-6 lg:h-fit lg:p-6'
+            data-theme-layout-section='filters'
+          >
             <div className='flex items-center justify-between border-b border-black/10 pb-4'>
               <div>
                 <p className='text-[12px] uppercase tracking-[0.2em] text-black/45'>Catalogo</p>
@@ -435,7 +441,7 @@ function ProductsPage() {
             </details>
           </aside>
 
-          <div>
+          <div data-theme-layout-section='content'>
             <div className='rounded-[28px] bg-white px-6 py-8 shadow-[0_16px_48px_rgba(0,0,0,0.06)] md:px-8'>
               <p className='text-[12px] uppercase tracking-[0.24em] text-black/45'>
                 Home / {resolvedCategoryName}

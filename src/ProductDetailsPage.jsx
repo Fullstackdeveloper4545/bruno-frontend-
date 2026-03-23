@@ -381,7 +381,8 @@ function ProductDetailsPage() {
   return (
     <>
       <Navbar />
-      <section className='mt-[6vh] mb-[10vh]'>
+      <div className='flex flex-col' data-theme-layout-root='product-details'>
+      <section className='mt-[6vh] mb-[10vh]' data-theme-layout-section='details'>
         <div className='w-[90vw] mx-auto grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-10'>
           <div className='border border-black/5 flex items-center justify-center'>
             <img src={selectedImage} alt={product?.title || 'Product image'} className='w-full' />
@@ -516,7 +517,7 @@ function ProductDetailsPage() {
         </div>
       </section>
 
-      <div className='w-[90vw] mx-auto mt-14'>
+      <section className='w-[90vw] mx-auto mt-14' data-theme-layout-section='recommended'>
         <h3 className='text-[16px] font-semibold mb-6'>Produtos Recomendados</h3>
         <div>
           <Swiper
@@ -549,6 +550,7 @@ function ProductDetailsPage() {
             ))}
           </Swiper>
         </div>
+      </section>
       </div>
       <Footer />
     </>

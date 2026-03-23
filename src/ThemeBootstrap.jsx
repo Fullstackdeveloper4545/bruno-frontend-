@@ -7,6 +7,12 @@ function safeTextValue(value) {
   return String(value ?? '')
 }
 
+function cssEscape(value) {
+  const raw = String(value ?? '')
+  if (typeof CSS !== 'undefined' && typeof CSS.escape === 'function') return CSS.escape(raw)
+  return raw.replace(/["\\]/g, '\\$&')
+}
+
 function getXPathForElement(element) {
   if (!(element instanceof Element)) return ''
   const segments = []
@@ -52,6 +58,83 @@ function findElementByXPath(xpath) {
     return null
   } catch {
     return null
+  }
+}
+
+function applyLayoutOverrides(settings, routePath) {
+  const overrides =
+    settings?.public_layout_overrides && typeof settings.public_layout_overrides === 'object'
+      ? settings.public_layout_overrides
+      : null
+  if (!overrides) return
+
+  const route = String(routePath || window?.location?.pathname || '/')
+  const buckets = []
+  if (overrides['*'] && typeof overrides['*'] === 'object') buckets.push(overrides['*'])
+  if (overrides[route] && typeof overrides[route] === 'object') buckets.push(overrides[route])
+
+  // Prefix matching: allow keys like "/productDetails/*" to match "/productDetails/123".
+  let bestPrefix = null
+  for (const [key, value] of Object.entries(overrides)) {
+    if (!key || key === '*' || key === route) continue
+    if (!key.endsWith('/*')) continue
+    const prefix = key.slice(0, -1) // keep trailing "/"
+    if (!prefix || !route.startsWith(prefix)) continue
+    if (!value || typeof value !== 'object') continue
+    if (!bestPrefix || prefix.length > bestPrefix.prefix.length) bestPrefix = { prefix, value }
+  }
+  if (bestPrefix?.value) buckets.push(bestPrefix.value)
+
+  for (const bucket of buckets) {
+    const rootId = String(bucket?.root_id || '').trim()
+    const order = Array.isArray(bucket?.order) ? bucket.order : []
+    const hidden = Array.isArray(bucket?.hidden) ? bucket.hidden : []
+    if (!rootId || order.length < 2) continue
+
+    const root = document.querySelector(`[data-theme-layout-root="${cssEscape(rootId)}"]`)
+    if (!(root instanceof Element)) continue
+
+    const children = Array.from(root.children).filter(
+      (child) => child instanceof HTMLElement && String(child.getAttribute('data-theme-layout-section') || '').trim()
+    )
+    if (children.length < 2) continue
+
+    const byId = new Map(children.map((child) => [String(child.getAttribute('data-theme-layout-section') || '').trim(), child]))
+    const used = new Set()
+    const ordered = []
+    for (const raw of order) {
+      const id = String(raw || '').trim()
+      const el = id ? byId.get(id) : null
+      if (!el || used.has(el)) continue
+      used.add(el)
+      ordered.push(el)
+    }
+
+    if (ordered.length < 2) continue
+
+    const remaining = children.filter((child) => !used.has(child))
+    for (const node of [...ordered, ...remaining]) {
+      try {
+        root.appendChild(node)
+      } catch {
+        // ignore
+      }
+    }
+
+    const hiddenSet = new Set(hidden.map((value) => String(value || '').trim()).filter(Boolean))
+    for (const [id, el] of byId.entries()) {
+      try {
+        if (hiddenSet.has(id)) {
+          el.setAttribute('data-theme-layout-hidden', '1')
+          el.style.display = 'none'
+        } else {
+          el.removeAttribute('data-theme-layout-hidden')
+          el.style.display = ''
+        }
+      } catch {
+        // ignore
+      }
+    }
   }
 }
 
@@ -351,7 +434,7 @@ export default function ThemeBootstrap() {
   const location = useLocation()
   const lastSettingsRef = useRef(null)
   const pathRef = useRef(String(location.pathname || ''))
-  const editorRef = useRef({ enabled: false, mode: 'edit', selected: null, cleanup: null })
+  const editorRef = useRef({ enabled: false, mode: 'edit', selected: null, cleanup: null, layoutCleanup: null })
 
   useEffect(() => {
     let active = true
@@ -365,7 +448,7 @@ export default function ThemeBootstrap() {
 
       if (data.type === 'theme-editor:setMode') {
         const mode = String(data.mode || '').trim().toLowerCase()
-        if (mode === 'edit' || mode === 'navigate') {
+        if (mode === 'edit' || mode === 'navigate' || mode === 'layout') {
           editorRef.current.mode = mode
           if (mode !== 'edit') {
             const selected = editorRef.current.selected
@@ -389,6 +472,7 @@ export default function ThemeBootstrap() {
       if (!String(pathRef.current || '').startsWith('/admin')) {
         applyThemeSettings(payloadSettings)
         applyContentOverrides(payloadSettings, String(pathRef.current || ''))
+        applyLayoutOverrides(payloadSettings, String(pathRef.current || ''))
         window.dispatchEvent(new CustomEvent(THEME_UPDATED_EVENT, { detail: { settings: payloadSettings } }))
       }
     }
@@ -434,6 +518,302 @@ export default function ThemeBootstrap() {
           }
         } catch {
           // ignore
+        }
+      }
+
+      const findLayoutRoot = () => {
+        const roots = Array.from(document.querySelectorAll('[data-theme-layout-root]')).filter((el) => el instanceof HTMLElement)
+        if (roots.length === 0) return null
+        roots.sort((a, b) => {
+          const aCount = Array.from(a.children).filter((c) => c instanceof HTMLElement && c.getAttribute('data-theme-layout-section')).length
+          const bCount = Array.from(b.children).filter((c) => c instanceof HTMLElement && c.getAttribute('data-theme-layout-section')).length
+          return bCount - aCount
+        })
+        return roots[0] || null
+      }
+
+      const installLayoutHandles = () => {
+        if (!state.enabled || state.mode !== 'layout') return
+        if (state.layoutCleanup) return
+
+        const route = String(window?.location?.pathname || '/') || '/'
+        const routeKey = (() => {
+          if (route.startsWith('/productDetails/')) return '/productDetails/*'
+          if (route.startsWith('/blog/')) return '/blog/*'
+          return route
+        })()
+        const container = findLayoutRoot()
+        if (!container) return
+
+        const rootId = String(container.getAttribute('data-theme-layout-root') || '').trim()
+        if (!rootId) return
+
+        const blocks = Array.from(container.children).filter((child) => {
+          if (!(child instanceof HTMLElement)) return false
+          const id = String(child.getAttribute('data-theme-layout-section') || '').trim()
+          return Boolean(id)
+        })
+        if (blocks.length < 2) return
+
+        let dragging = null
+
+        const computeOrderPayload = () => {
+          const order = Array.from(container.children)
+            .filter((child) => child instanceof HTMLElement)
+            .map((child) => String(child.getAttribute('data-theme-layout-section') || '').trim())
+            .filter(Boolean)
+          const hidden = Array.from(container.children)
+            .filter((child) => child instanceof HTMLElement && String(child.getAttribute('data-theme-layout-hidden') || '').trim() === '1')
+            .map((child) => String(child.getAttribute('data-theme-layout-section') || '').trim())
+            .filter(Boolean)
+          return { route: routeKey, root_id: rootId, order, hidden }
+        }
+
+        const commitOrder = () => {
+          const payload = computeOrderPayload()
+          if (!payload.order || payload.order.length < 2) return
+          if (payload.route === '/' && payload.root_id === 'home') {
+            postToParent({ type: 'theme-editor:home-sections-order', order: payload.order })
+            // Home "deletes" are stored as layout hidden ids, while ordering is stored in public_home_sections.
+            postToParent({ type: 'theme-editor:layout', ...payload })
+            return
+          }
+          postToParent({ type: 'theme-editor:layout', ...payload })
+        }
+
+        const syncHomeCssOrder = () => {
+          if (route !== '/' || rootId !== 'home') return
+          let order = 10
+          for (const child of Array.from(container.children)) {
+            if (!(child instanceof HTMLElement)) continue
+            if (!String(child.getAttribute('data-theme-layout-section') || '').trim()) continue
+            child.style.order = String(order)
+            order += 10
+          }
+        }
+
+        const decorateBlock = (block) => {
+          const existing = block.querySelector(':scope > [data-theme-layout-handle="1"]')
+          if (existing) return
+
+          block.setAttribute('data-theme-layout-item', '1')
+          if (!block.getAttribute('data-theme-layout-prev-position')) {
+            block.setAttribute('data-theme-layout-prev-position', String(block.style.position || ''))
+          }
+          if (!block.getAttribute('data-theme-layout-prev-outline')) {
+            block.setAttribute('data-theme-layout-prev-outline', String(block.style.outline || ''))
+          }
+
+          const computed = window.getComputedStyle ? window.getComputedStyle(block) : null
+          if (computed && computed.position === 'static') {
+            block.style.position = 'relative'
+          }
+          block.style.outline = '2px dashed rgba(59, 130, 246, 0.6)'
+
+          const handle = document.createElement('button')
+          handle.type = 'button'
+          handle.textContent = '≡'
+          handle.setAttribute('data-theme-layout-handle', '1')
+          handle.setAttribute('draggable', 'true')
+          handle.setAttribute('aria-label', 'Drag section')
+          handle.style.position = 'absolute'
+          handle.style.top = '10px'
+          handle.style.right = '10px'
+          handle.style.zIndex = '2147483647'
+          handle.style.width = '32px'
+          handle.style.height = '28px'
+          handle.style.borderRadius = '8px'
+          handle.style.border = '1px solid rgba(0,0,0,0.15)'
+          handle.style.background = 'rgba(255,255,255,0.9)'
+          handle.style.boxShadow = '0 1px 8px rgba(0,0,0,0.12)'
+          handle.style.color = 'rgba(0,0,0,0.65)'
+          handle.style.cursor = 'grab'
+          handle.style.fontSize = '18px'
+          handle.style.lineHeight = '1'
+          handle.style.display = 'inline-flex'
+          handle.style.alignItems = 'center'
+          handle.style.justifyContent = 'center'
+          handle.style.userSelect = 'none'
+
+          const hideButton = document.createElement('button')
+          hideButton.type = 'button'
+          hideButton.textContent = '×'
+          hideButton.setAttribute('data-theme-layout-hide', '1')
+          hideButton.setAttribute('aria-label', 'Delete section')
+          hideButton.style.position = 'absolute'
+          hideButton.style.top = '10px'
+          hideButton.style.right = '46px'
+          hideButton.style.zIndex = '2147483647'
+          hideButton.style.width = '28px'
+          hideButton.style.height = '28px'
+          hideButton.style.borderRadius = '8px'
+          hideButton.style.border = '1px solid rgba(0,0,0,0.15)'
+          hideButton.style.background = 'rgba(255,255,255,0.9)'
+          hideButton.style.boxShadow = '0 1px 8px rgba(0,0,0,0.12)'
+          hideButton.style.color = 'rgba(0,0,0,0.65)'
+          hideButton.style.cursor = 'pointer'
+          hideButton.style.fontSize = '18px'
+          hideButton.style.lineHeight = '1'
+          hideButton.style.display = 'inline-flex'
+          hideButton.style.alignItems = 'center'
+          hideButton.style.justifyContent = 'center'
+          hideButton.style.userSelect = 'none'
+
+          const onDragStart = (event) => {
+            if (state.mode !== 'layout') return
+            const id = String(block.getAttribute('data-theme-layout-section') || '').trim()
+            if (!id) return
+            dragging = id
+            try {
+              event.dataTransfer.effectAllowed = 'move'
+              event.dataTransfer.setData('text/plain', id)
+            } catch {
+              // ignore
+            }
+          }
+
+          const onDragEnd = () => {
+            dragging = null
+          }
+
+          const onDragOver = (event) => {
+            if (state.mode !== 'layout') return
+            if (!dragging) return
+            event.preventDefault()
+
+            const draggedEl = Array.from(container.children).find(
+              (child) => child instanceof HTMLElement && String(child.getAttribute('data-theme-layout-section') || '').trim() === dragging
+            )
+            if (!(draggedEl instanceof HTMLElement) || draggedEl.parentElement !== container) return
+            if (draggedEl === block) return
+
+            const rect = block.getBoundingClientRect?.()
+            if (!rect) return
+            const midpoint = rect.top + rect.height / 2
+            const insertAfter = typeof event.clientY === 'number' && event.clientY > midpoint
+            try {
+              if (insertAfter) {
+                container.insertBefore(draggedEl, block.nextSibling)
+              } else {
+                container.insertBefore(draggedEl, block)
+              }
+              syncHomeCssOrder()
+            } catch {
+              // ignore
+            }
+          }
+
+          const onDrop = (event) => {
+            if (state.mode !== 'layout') return
+            event.preventDefault()
+            commitOrder()
+          }
+
+          const onHideClick = (event) => {
+            if (state.mode !== 'layout') return
+            event.preventDefault()
+            event.stopPropagation()
+            const sectionId = String(block.getAttribute('data-theme-layout-section') || '').trim()
+            if (!sectionId) return
+
+            const isHidden = String(block.getAttribute('data-theme-layout-hidden') || '').trim() === '1'
+            if (isHidden) {
+              block.removeAttribute('data-theme-layout-hidden')
+              block.style.opacity = ''
+            } else {
+              block.setAttribute('data-theme-layout-hidden', '1')
+              block.style.opacity = '0.35'
+            }
+            commitOrder()
+          }
+
+          handle.addEventListener('dragstart', onDragStart)
+          handle.addEventListener('dragend', onDragEnd)
+          hideButton.addEventListener('click', onHideClick)
+          block.addEventListener('dragover', onDragOver)
+          block.addEventListener('drop', onDrop)
+
+          block.insertBefore(handle, block.firstChild)
+          block.insertBefore(hideButton, block.firstChild)
+
+          const isHidden = String(block.getAttribute('data-theme-layout-hidden') || '').trim() === '1'
+          if (!block.getAttribute('data-theme-layout-prev-opacity')) {
+            block.setAttribute('data-theme-layout-prev-opacity', String(block.style.opacity || ''))
+          }
+          if (isHidden) {
+            block.style.display = ''
+            block.style.opacity = '0.35'
+          }
+
+          return {
+            handle,
+            hideButton,
+            onDragStart,
+            onDragEnd,
+            onHideClick,
+            onDragOver,
+            onDrop,
+          }
+        }
+
+        const decorated = []
+        for (const block of blocks) {
+          const result = decorateBlock(block)
+          if (result) decorated.push({ block, ...result })
+        }
+
+        state.layoutCleanup = () => {
+          for (const row of decorated) {
+            try {
+              row.handle?.removeEventListener('dragstart', row.onDragStart)
+              row.handle?.removeEventListener('dragend', row.onDragEnd)
+              row.hideButton?.removeEventListener('click', row.onHideClick)
+              row.block?.removeEventListener('dragover', row.onDragOver)
+              row.block?.removeEventListener('drop', row.onDrop)
+              row.handle?.remove()
+              row.hideButton?.remove()
+
+              const prevPos = String(row.block?.getAttribute('data-theme-layout-prev-position') || '')
+              const prevOutline = String(row.block?.getAttribute('data-theme-layout-prev-outline') || '')
+              if (row.block) {
+                row.block.style.position = prevPos
+                row.block.style.outline = prevOutline
+                const prevOpacity = String(row.block?.getAttribute('data-theme-layout-prev-opacity') || '')
+                row.block.style.opacity = prevOpacity
+                row.block.removeAttribute('data-theme-layout-prev-opacity')
+                row.block.removeAttribute('data-theme-layout-item')
+                row.block.removeAttribute('data-theme-layout-prev-position')
+                row.block.removeAttribute('data-theme-layout-prev-outline')
+              }
+            } catch {
+              // ignore
+            }
+          }
+          dragging = null
+          state.layoutCleanup = null
+        }
+      }
+
+      const syncEditorDecorations = () => {
+        if (!state.enabled) return
+        if (state.mode === 'layout') {
+          installLayoutHandles()
+          return
+        }
+        if (state.layoutCleanup) {
+          try {
+            state.layoutCleanup()
+          } catch {
+            // ignore
+          }
+          // Re-apply layout overrides so hidden sections disappear outside layout mode.
+          if (lastSettingsRef.current) {
+            try {
+              applyLayoutOverrides(lastSettingsRef.current, String(pathRef.current || ''))
+            } catch {
+              // ignore
+            }
+          }
         }
       }
 
@@ -677,7 +1057,25 @@ export default function ThemeBootstrap() {
         window.removeEventListener('blur', onBlur, true)
         window.removeEventListener('keydown', onKeyDown, true)
         clearSelected()
+        if (state.layoutCleanup) state.layoutCleanup()
         state.cleanup = null
+      }
+
+      // Initial decoration sync.
+      syncEditorDecorations()
+      // Re-run occasionally in case route loads content after mount (e.g., async renders).
+      const syncTimer = window.setInterval(() => {
+        if (!state.enabled) return
+        syncEditorDecorations()
+      }, 900)
+      const previousCleanup = state.cleanup
+      state.cleanup = () => {
+        try {
+          window.clearInterval(syncTimer)
+        } catch {
+          // ignore
+        }
+        previousCleanup?.()
       }
     }
 
@@ -697,6 +1095,7 @@ export default function ThemeBootstrap() {
           if (payloadSettings) {
             applyThemeSettings(payloadSettings)
             applyContentOverrides(payloadSettings, String(pathRef.current || ''))
+            applyLayoutOverrides(payloadSettings, String(pathRef.current || ''))
           }
           if (previewThemeId && payloadSettings) {
             window.dispatchEvent(new CustomEvent(THEME_UPDATED_EVENT, { detail: { settings: payloadSettings } }))
@@ -717,6 +1116,7 @@ export default function ThemeBootstrap() {
       if (!String(pathRef.current || '').startsWith('/admin')) {
         applyThemeSettings(payload)
         applyContentOverrides(payload, String(pathRef.current || ''))
+        applyLayoutOverrides(payload, String(pathRef.current || ''))
       }
     }
 
@@ -743,6 +1143,7 @@ export default function ThemeBootstrap() {
     if (lastSettingsRef.current) {
       applyThemeSettings(lastSettingsRef.current)
       applyContentOverrides(lastSettingsRef.current, String(pathRef.current || ''))
+      applyLayoutOverrides(lastSettingsRef.current, String(pathRef.current || ''))
     }
   }, [location.pathname])
 

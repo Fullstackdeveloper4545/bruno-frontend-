@@ -59,8 +59,11 @@ const ContactPage = () => {
     <>
       <Navbar />
 
-      <main className='bg-white text-black font-[Helvetica,Arial,sans-serif]'>
-        <section className='mx-auto max-w-[1366px] grid grid-cols-1 lg:grid-cols-[1fr_330px] gap-10 lg:gap-[120px] px-5 sm:px-8 lg:px-20 pt-[60px] sm:pt-[72px] lg:pt-[90px] pb-[52px] sm:pb-[70px] lg:pb-[100px]'>
+      <main className='bg-white text-black font-[Helvetica,Arial,sans-serif]' data-theme-layout-root='contact'>
+        <section
+          className='mx-auto max-w-[1366px] grid grid-cols-1 lg:grid-cols-[1fr_330px] gap-10 lg:gap-[120px] px-5 sm:px-8 lg:px-20 pt-[60px] sm:pt-[72px] lg:pt-[90px] pb-[52px] sm:pb-[70px] lg:pb-[100px]'
+          data-theme-layout-section='intro'
+        >
           <div>
             <h1 className='m-0 mb-[18px] sm:mb-[30px] text-[48px] sm:text-[62px] lg:text-[82px] leading-[0.82] font-normal'>
               CONTACTOS
@@ -84,7 +87,10 @@ const ContactPage = () => {
           </div>
         </section>
 
-        <section className='w-full grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-9 lg:gap-[80px] px-5 sm:px-8 lg:px-20 py-[46px] sm:py-[60px] lg:py-[70px] bg-primary text-primary-foreground'>
+        <section
+          className='w-full grid grid-cols-1 lg:grid-cols-[1fr_1.2fr] gap-9 lg:gap-[80px] px-5 sm:px-8 lg:px-20 py-[46px] sm:py-[60px] lg:py-[70px] bg-primary text-primary-foreground'
+          data-theme-layout-section='form'
+        >
           <div>
             <h2 className='m-0 text-[36px] sm:text-[44px] lg:text-[54px] leading-[1.2] sm:leading-[1.41] tracking-[0.05em] font-normal'>
               TEM DUVIDAS
@@ -136,7 +142,10 @@ const ContactPage = () => {
           </form>
         </section>
 
-        <section className='mx-auto max-w-[1366px] px-5 sm:px-8 lg:px-[42px] py-[40px] sm:py-[55px] lg:py-[70px] text-center border-t border-[#d9d9d9]'>
+        <section
+          className='mx-auto max-w-[1366px] px-5 sm:px-8 lg:px-[42px] py-[40px] sm:py-[55px] lg:py-[70px] text-center border-t border-[#d9d9d9]'
+          data-theme-layout-section='stores'
+        >
           <h2 className='m-0 text-[28px] sm:text-[32px] leading-[1.04] font-normal text-[#262626]'>
             Estamos perto de ti
           </h2>

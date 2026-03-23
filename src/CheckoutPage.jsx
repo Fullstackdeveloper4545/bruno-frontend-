@@ -196,8 +196,11 @@ const CheckoutPage = () => {
           <p className='mt-2 text-[14px] tracking-[1.5px] text-[#8b93a7] uppercase'>Carrinho | Pagamento</p>
         </div>
 
-        <div className='w-[85%] mx-auto max-w-[1180px] mt-8 grid grid-cols-1 lg:grid-cols-[1fr_1px_360px] gap-8 items-start'>
-          <div>
+        <div
+          className='w-[85%] mx-auto max-w-[1180px] mt-8 grid grid-cols-1 lg:grid-cols-[1fr_1px_360px] gap-8 items-start'
+          data-theme-layout-root='checkout'
+        >
+          <div data-theme-layout-section='form'>
             <div className='flex items-center justify-between mb-6'>
               <label className='text-[16px] tracking-[1.2px] text-[#222] uppercase'>Email</label>
               <p className='text-[14px] text-[#8b93a7]'>Ja tem uma conta? <span className='text-[#111] underline cursor-pointer'>Log in</span></p>
@@ -342,7 +345,7 @@ const CheckoutPage = () => {
 
           <div className='hidden lg:block w-px bg-[#e2e5ec] h-[50%]' />
 
-          <aside>
+          <aside data-theme-layout-section='summary'>
             <h2 className='m-0 text-[28px] tracking-[1px] text-[#111] uppercase'>O seu carrinho</h2>
 
             <div className='mt-6 grid gap-6'>

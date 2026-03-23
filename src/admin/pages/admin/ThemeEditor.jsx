@@ -38,8 +38,14 @@ function settingsFromDraft(draft) {
     public_category_card_overlay_opacity: String(safeDraft.public_category_card_overlay_opacity ?? "0").trim(),
     public_home_sections: Array.isArray(safeDraft.public_home_sections) ? safeDraft.public_home_sections : [],
     public_home_content: safeDraft.public_home_content && typeof safeDraft.public_home_content === "object" ? safeDraft.public_home_content : {},
+    public_home_custom_sections:
+      safeDraft.public_home_custom_sections && typeof safeDraft.public_home_custom_sections === "object"
+        ? safeDraft.public_home_custom_sections
+        : {},
     public_content_overrides:
       safeDraft.public_content_overrides && typeof safeDraft.public_content_overrides === "object" ? safeDraft.public_content_overrides : {},
+    public_layout_overrides:
+      safeDraft.public_layout_overrides && typeof safeDraft.public_layout_overrides === "object" ? safeDraft.public_layout_overrides : {},
   };
 }
 
@@ -72,15 +78,82 @@ function normalizeDraft(payload) {
     public_category_card_overlay_opacity: String(settings?.public_category_card_overlay_opacity ?? "0").trim(),
     public_home_sections: Array.isArray(settings?.public_home_sections) ? settings.public_home_sections : [],
     public_home_content: settings?.public_home_content && typeof settings.public_home_content === "object" ? settings.public_home_content : {},
+    public_home_custom_sections:
+      settings?.public_home_custom_sections && typeof settings.public_home_custom_sections === "object"
+        ? settings.public_home_custom_sections
+        : {},
     public_content_overrides:
       settings?.public_content_overrides && typeof settings.public_content_overrides === "object" ? settings.public_content_overrides : {},
+    public_layout_overrides:
+      settings?.public_layout_overrides && typeof settings.public_layout_overrides === "object" ? settings.public_layout_overrides : {},
   };
+}
+
+function applyLayoutOverride(prev, { route, parentXPath, order, hidden }) {
+  const safeRoute = String(route || "/").trim() || "/";
+  const nextOrder = Array.isArray(order) ? order.map((value) => String(value || "").trim()).filter(Boolean) : [];
+  const safeRootId = String(parentXPath || "").trim();
+  const nextHidden = Array.isArray(hidden) ? hidden.map((value) => String(value || "").trim()).filter(Boolean) : [];
+  if (!safeRootId) return prev;
+
+  const overrides =
+    prev.public_layout_overrides && typeof prev.public_layout_overrides === "object" ? prev.public_layout_overrides : {};
+
+  return {
+    ...prev,
+    public_layout_overrides: {
+      ...overrides,
+      [safeRoute]: {
+        root_id: safeRootId,
+        order: nextOrder,
+        hidden: nextHidden,
+      },
+    },
+  };
+}
+
+function applyHomeSectionsOrder(prev, orderKeys) {
+  const nextKeys = Array.isArray(orderKeys) ? orderKeys.map((key) => String(key || "").trim()).filter(Boolean) : [];
+  if (nextKeys.length === 0) return prev;
+
+  const current = Array.isArray(prev.public_home_sections) ? prev.public_home_sections : [];
+  const enabledMap = new Map(
+    current
+      .map((row) => ({
+        key: String(row?.key || row || "").trim(),
+        enabled: typeof row === "object" && row ? row.enabled !== false : true,
+      }))
+      .filter((row) => row.key)
+      .map((row) => [row.key, row.enabled])
+  );
+
+  const seen = new Set();
+  const next = [];
+  for (const key of nextKeys) {
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    next.push({ key, enabled: enabledMap.get(key) !== false });
+  }
+
+  for (const row of current) {
+    const key = String(row?.key || row || "").trim();
+    if (!key || seen.has(key)) continue;
+    seen.add(key);
+    next.push({ key, enabled: enabledMap.get(key) !== false });
+  }
+
+  return { ...prev, public_home_sections: next };
 }
 
 function applyNestedDraftChange(prev, key, value) {
   const path = String(key || "").trim();
   if (!path) return prev;
-  const [root, leaf] = path.split(".", 2);
+  const parts = path.split(".").map((p) => String(p || "").trim()).filter(Boolean);
+  const root = parts[0] || "";
+  const leaf = parts[1] || "";
+  if (parts.length === 1) {
+    return { ...prev, [root]: value };
+  }
   if (root === "public_home_content" && leaf) {
     return {
       ...prev,
@@ -90,7 +163,41 @@ function applyNestedDraftChange(prev, key, value) {
       },
     };
   }
+  if (root === "public_home_custom_sections") {
+    const sectionId = leaf;
+    const field = parts[2] || "";
+    if (!sectionId || !field) return prev;
+    const existing =
+      prev.public_home_custom_sections && typeof prev.public_home_custom_sections === "object" ? prev.public_home_custom_sections : {};
+    const currentSection = existing[sectionId] && typeof existing[sectionId] === "object" ? existing[sectionId] : {};
+    return {
+      ...prev,
+      public_home_custom_sections: {
+        ...existing,
+        [sectionId]: {
+          ...currentSection,
+          [field]: value,
+        },
+      },
+    };
+  }
   return prev;
+}
+
+function resolveDraftValueByPath(draft, path) {
+  const safe = String(path || "").trim();
+  if (!safe) return "";
+  const parts = safe.split(".").map((p) => String(p || "").trim()).filter(Boolean);
+  if (parts.length === 0) return "";
+  if (parts.length === 1) return String(draft?.[parts[0]] ?? "");
+
+  if (parts[0] === "public_home_content" && parts[1]) {
+    return String(draft?.public_home_content?.[parts[1]] ?? "");
+  }
+  if (parts[0] === "public_home_custom_sections" && parts[1] && parts[2]) {
+    return String(draft?.public_home_custom_sections?.[parts[1]]?.[parts[2]] ?? "");
+  }
+  return "";
 }
 
 function applyXPathOverride(prev, { route, xpath, attr, value }) {
@@ -230,8 +337,9 @@ export default function ThemeEditor() {
   const themeId = String(searchParams.get("id") || "").trim();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-  const [editorMode, setEditorMode] = useState("edit"); // edit | navigate
+  const [editorMode, setEditorMode] = useState("edit"); // edit | layout | navigate
   const [routePath, setRoutePath] = useState("/");
+  const [newHomeSectionType, setNewHomeSectionType] = useState("text");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [draft, setDraft] = useState(() =>
@@ -253,6 +361,8 @@ export default function ThemeEditor() {
       public_category_card_overlay_opacity: "0",
       public_home_sections: [],
       public_home_content: {},
+      public_home_custom_sections: {},
+      public_layout_overrides: {},
     })
   );
 
@@ -387,6 +497,62 @@ export default function ThemeEditor() {
         }
         return;
       }
+
+      if (data.type === "theme-editor:layout") {
+        const route = String(data.route || "/").trim() || "/";
+        const parentXPath = String(data.root_id || data.rootId || "").trim();
+        const order = Array.isArray(data.order) ? data.order : [];
+        const hidden = Array.isArray(data.hidden) ? data.hidden : [];
+        if (!parentXPath) return;
+        setDraft((prev) => applyLayoutOverride(prev, { route, parentXPath, order, hidden }));
+        return;
+      }
+
+      if (data.type === "theme-editor:home-sections-order") {
+        const order = Array.isArray(data.order) ? data.order : [];
+        if (order.length === 0) return;
+        setDraft((prev) => applyHomeSectionsOrder(prev, order));
+        return;
+      }
+
+      if (data.type === "theme-editor:home-sections-toggle") {
+        const key = String(data.key || "").trim();
+        const enabled = data.enabled !== false;
+        if (!key) return;
+        setDraft((prev) => {
+          const current = Array.isArray(prev.public_home_sections) ? prev.public_home_sections : [];
+          if (current.length === 0) return prev;
+          const next = current.map((row) => {
+            const rowKey = String(row?.key || row || "").trim();
+            if (rowKey !== key) return row;
+            if (typeof row === "object" && row) return { ...row, key: rowKey, enabled };
+            return { key: rowKey, enabled };
+          });
+          return { ...prev, public_home_sections: next };
+        });
+        return;
+      }
+
+      if (data.type === "theme-editor:home-custom-delete") {
+        const key = String(data.key || "").trim();
+        if (!key.startsWith("custom:")) return;
+        const id = key.slice("custom:".length).trim();
+        if (!id) return;
+        setDraft((prev) => {
+          const nextSections = Array.isArray(prev.public_home_sections)
+            ? prev.public_home_sections.filter((row) => String(row?.key || row || "").trim() !== key)
+            : prev.public_home_sections;
+          const existing =
+            prev.public_home_custom_sections && typeof prev.public_home_custom_sections === "object"
+              ? prev.public_home_custom_sections
+              : {};
+          const nextCustom = { ...existing };
+          delete nextCustom[id];
+          return { ...prev, public_home_sections: nextSections, public_home_custom_sections: nextCustom };
+        });
+        return;
+      }
+
       if (data.type !== "theme-editor:change") return;
       const mode = String(data.mode || "key").trim();
       const value = typeof data.value === "string" ? data.value : String(data.value ?? "");
@@ -410,7 +576,7 @@ export default function ThemeEditor() {
   const resolveDialogValue = () => {
     if (!imageDialog.open) return "";
     if (imageDialog.kind === "key") {
-      return String(draft?.[imageDialog.key] || "").trim();
+      return String(resolveDraftValueByPath(draft, imageDialog.key) || "").trim();
     }
     if (imageDialog.kind === "xpath") {
       const overrides =
@@ -567,9 +733,9 @@ export default function ThemeEditor() {
 
       <div className="grid gap-4 lg:grid-cols-[1fr_420px]">
         <Card className="border-border/60 bg-card/90">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 font-display text-xl">
-              Preview{" "}
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2 font-display text-xl">
+                Preview{" "}
               {saving ? (
                 <Badge variant="secondary">Saving</Badge>
               ) : isDirty ? (
@@ -583,7 +749,9 @@ export default function ThemeEditor() {
             <CardDescription>
               {editorMode === "edit"
                 ? "Edit mode: click text/buttons to edit. Press Enter to commit."
-                : "Navigate mode: use the website normally (click links, open pages)."}
+                : editorMode === "layout"
+                  ? "Layout mode: drag the section handles (≡) to reorder the page."
+                  : "Navigate mode: use the website normally (click links, open pages)."}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -594,6 +762,13 @@ export default function ThemeEditor() {
                 disabled={saving || loading}
               >
                 Edit mode
+              </Button>
+              <Button
+                variant={editorMode === "layout" ? "default" : "outline"}
+                onClick={() => setEditorMode("layout")}
+                disabled={saving || loading}
+              >
+                Layout mode
               </Button>
               <Button
                 variant={editorMode === "navigate" ? "default" : "outline"}
@@ -627,6 +802,111 @@ export default function ThemeEditor() {
                 </Button>
               </div>
             </div>
+
+            {editorMode === "layout" && String(routePath || "").trim() === "/" ? (
+              <div className="mb-3 rounded-lg border border-border/60 bg-background/60 p-3">
+                <p className="text-sm font-medium">Home custom sections</p>
+                <div className="mt-3 flex flex-wrap items-center gap-2">
+                  <select
+                    value={newHomeSectionType}
+                    onChange={(e) => setNewHomeSectionType(e.target.value)}
+                    disabled={saving || loading}
+                    className="flex h-10 rounded-md border border-input bg-background px-3 py-2 text-sm outline-none transition-colors focus:ring-2 focus:ring-ring disabled:cursor-not-allowed disabled:opacity-50"
+                  >
+                    <option value="text">Text</option>
+                    <option value="image">Image</option>
+                    <option value="cta">Button</option>
+                  </select>
+                  <Button
+                    variant="outline"
+                    disabled={saving || loading}
+                    onClick={() => {
+                      const type = String(newHomeSectionType || "text").trim() || "text";
+                      const id = typeof crypto !== "undefined" && crypto.randomUUID ? crypto.randomUUID() : String(Date.now());
+                      const key = `custom:${id}`;
+                      const defaults =
+                        type === "image"
+                          ? { type, title: "New image section", body: "Click to edit text.", image_url: "" }
+                          : type === "cta"
+                            ? { type, title: "New section", body: "Click to edit text.", button_label: "Shop now", button_href: "/products" }
+                            : { type, title: "New section", body: "Click to edit text." };
+
+                      setDraft((prev) => {
+                        const existingCustom =
+                          prev.public_home_custom_sections && typeof prev.public_home_custom_sections === "object"
+                            ? prev.public_home_custom_sections
+                            : {};
+                        const existingSections = Array.isArray(prev.public_home_sections) ? prev.public_home_sections : [];
+                        return {
+                          ...prev,
+                          public_home_custom_sections: { ...existingCustom, [id]: defaults },
+                          public_home_sections: [...existingSections, { key, enabled: true }],
+                        };
+                      });
+                    }}
+                  >
+                    Add section
+                  </Button>
+                </div>
+
+                {draft.public_home_custom_sections && Object.keys(draft.public_home_custom_sections).length > 0 ? (
+                  <div className="mt-4 grid gap-3">
+                    {Object.entries(draft.public_home_custom_sections).map(([id, section]) => {
+                      const safeId = String(id || "").trim();
+                      if (!safeId) return null;
+                      const type = String(section?.type || "text").trim() || "text";
+                      const hrefKey = `public_home_custom_sections.${safeId}.button_href`;
+                      const hrefValue = resolveDraftValueByPath(draft, hrefKey);
+                      return (
+                        <div key={safeId} className="rounded-md border border-border/60 bg-background p-3">
+                          <div className="flex items-center justify-between gap-3">
+                            <p className="m-0 text-xs text-muted-foreground">
+                              {type.toUpperCase()} • {safeId.slice(0, 8)}
+                            </p>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              disabled={saving || loading}
+                              onClick={() => {
+                                const key = `custom:${safeId}`;
+                                setDraft((prev) => {
+                                  const existingCustom =
+                                    prev.public_home_custom_sections && typeof prev.public_home_custom_sections === "object"
+                                      ? prev.public_home_custom_sections
+                                      : {};
+                                  const nextCustom = { ...existingCustom };
+                                  delete nextCustom[safeId];
+                                  const nextSections = Array.isArray(prev.public_home_sections)
+                                    ? prev.public_home_sections.filter((row) => String(row?.key || row || "").trim() !== key)
+                                    : prev.public_home_sections;
+                                  return { ...prev, public_home_custom_sections: nextCustom, public_home_sections: nextSections };
+                                });
+                              }}
+                            >
+                              Delete
+                            </Button>
+                          </div>
+                          {type === "cta" ? (
+                            <div className="mt-3 grid gap-2">
+                              <label className="text-xs text-muted-foreground">Button URL</label>
+                              <Input
+                                value={String(hrefValue || "").trim()}
+                                onChange={(e) => setDraft((prev) => applyNestedDraftChange(prev, hrefKey, e.target.value))}
+                                disabled={saving || loading}
+                                placeholder="/products"
+                              />
+                            </div>
+                          ) : null}
+                        </div>
+                      );
+                    })}
+                  </div>
+                ) : (
+                  <p className="mt-3 text-xs text-muted-foreground">No custom sections yet.</p>
+                )}
+              </div>
+            ) : null}
+
             <iframe
               ref={iframeRef}
               title="Theme editor preview"
@@ -1091,7 +1371,7 @@ export default function ThemeEditor() {
                     if (!url) throw new Error("Upload failed.");
 
                     if (imageDialog.kind === "key" && imageDialog.key) {
-                      setDraft((prev) => ({ ...prev, [imageDialog.key]: url }));
+                      setDraft((prev) => applyNestedDraftChange(prev, imageDialog.key, url));
                     } else if (imageDialog.kind === "xpath" && imageDialog.xpath) {
                       setDraft((prev) =>
                         applyXPathOverride(prev, {
@@ -1128,7 +1408,7 @@ export default function ThemeEditor() {
                     variant="secondary"
                     onClick={() => {
                       if (!imageDialog.key) return;
-                      setDraft((prev) => ({ ...prev, [imageDialog.key]: "" }));
+                      setDraft((prev) => applyNestedDraftChange(prev, imageDialog.key, ""));
                       setImageDialog((prev) => ({ ...prev, open: false }));
                     }}
                     disabled={saving || resolveDialogValue() === ""}
@@ -1139,7 +1419,7 @@ export default function ThemeEditor() {
                     variant="destructive"
                     onClick={() => {
                       if (!imageDialog.key) return;
-                      setDraft((prev) => ({ ...prev, [imageDialog.key]: "__none__" }));
+                      setDraft((prev) => applyNestedDraftChange(prev, imageDialog.key, "__none__"));
                       setImageDialog((prev) => ({ ...prev, open: false }));
                     }}
                     disabled={saving || resolveDialogValue() === "__none__"}

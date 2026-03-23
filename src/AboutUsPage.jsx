@@ -150,7 +150,8 @@ const AboutUsPage = () => {
       {loading ? <p className='mt-4 text-center text-[13px] text-[#6b7280]'>A carregar conteudo...</p> : null}
       {error ? <p className='mt-4 text-center text-[13px] text-[#b42318]'>{error}</p> : null}
 
-      <section className='bg-white px-5 py-12 sm:py-16 '>
+      <div className='flex flex-col' data-theme-layout-root='about-us'>
+      <section className='bg-white px-5 py-12 sm:py-16 ' data-theme-layout-section='hero'>
         <div className='mx-auto max-w-[1200px] grid grid-cols-1 md:grid-cols-2 gap-8 md:gap-12 items-start'>
           <div className='w-full'>
             <img
@@ -171,7 +172,7 @@ const AboutUsPage = () => {
         </div>
       </section>
 
-      <section className='bg-white px-5 pb-12 sm:pb-16 '>
+      <section className='bg-white px-5 pb-12 sm:pb-16 ' data-theme-layout-section='mission'>
         <div className='mx-auto max-w-[1200px] grid grid-cols-1 lg:grid-cols-[1.05fr_1fr] gap-8 lg:gap-12 items-start'>
           <div>
             <h2 className='m-0 text-[30px] sm:text-[34px] lg:text-[38px] text-[#3a231d] font-medium'>
@@ -209,7 +210,7 @@ const AboutUsPage = () => {
         </div>
       </section>
 
-      <section className='bg-white px-5 py-12 sm:py-16 '>
+      <section className='bg-white px-5 py-12 sm:py-16 ' data-theme-layout-section='testimonials'>
         <div className='mx-auto max-w-[1200px] flex flex-col lg:flex-row gap-10 lg:gap-14 items-start'>
           <div className=' lg:hidden lg:w-[280px] text-center'>
             <p className='m-0 text-[12px] tracking-[2px] text-[#8b8b8b] uppercase'>Testemunhos</p>
@@ -268,7 +269,10 @@ const AboutUsPage = () => {
         </div>
       </section>
 
-      <section className='mx-auto max-w-[1366px] px-5 sm:px-8 lg:px-[42px] py-[40px] sm:py-[55px] lg:py-[70px] text-center '>
+      <section
+        className='mx-auto max-w-[1366px] px-5 sm:px-8 lg:px-[42px] py-[40px] sm:py-[55px] lg:py-[70px] text-center '
+        data-theme-layout-section='stores'
+      >
         <h2 className='m-0 text-[28px] sm:text-[32px] leading-[1.04] font-normal text-[#262626]'>
           Estamos perto de ti
         </h2>
@@ -298,6 +302,7 @@ const AboutUsPage = () => {
         </div>
       </section>
 
+      </div>
       <Footer />
     </>
   )
