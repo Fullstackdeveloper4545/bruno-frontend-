@@ -16,6 +16,16 @@ const isShopifySettings = (settings) => {
   const name = String(settings?.integration_name || "").toLowerCase();
   return baseUrl.includes("myshopify.com") || baseUrl.includes("shopify") || name.includes("shopify");
 };
+const resolveShopifyShop = (baseUrl) => {
+  const raw = String(baseUrl || "").trim();
+  if (!raw) return "";
+  try {
+    const url = new URL(raw.includes("://") ? raw : `https://${raw}`);
+    return url.hostname.replace(/\/+$/, "");
+  } catch (_) {
+    return raw.replace(/^https?:\/\//i, "").replace(/\/+$/, "");
+  }
+};
 const Integrations = () => {
   const [settings, setSettings] = useState({
     base_url: "",
@@ -70,6 +80,15 @@ const Integrations = () => {
       await load();
     }
   };
+  const handleConnectShopify = () => {
+    const shop = resolveShopifyShop(settings.base_url);
+    if (!shop) {
+      setMessage("Please enter your Shopify shop URL first (example: https://your-store.myshopify.com).");
+      return;
+    }
+    const returnTo = `${window.location.origin}/admin/integrations`;
+    window.location.href = `/api/integration/shopify/oauth/start?shop=${encodeURIComponent(shop)}&return_to=${encodeURIComponent(returnTo)}`;
+  };
   return <div className='space-y-6'>
       <PageHeader title='Definições de integração' description='Defina as suas integrações, sincronize manualmente e trabalhe a segurança dos webhooks.' />
       {message ? <p className='text-sm'>{message}</p> : null}
@@ -91,6 +110,12 @@ const Integrations = () => {
           <div className='flex h-12 items-center gap-3 rounded-xl border border-slate-400/60 bg-white px-4 text-sm'><span>Integração ativa</span><Switch checked={settings.is_active} onCheckedChange={(checked) => setSettings((p) => ({ ...p, is_active: checked }))} /></div>
           <div className='flex h-12 items-center gap-3 rounded-xl border border-slate-400/60 bg-white px-4 text-sm'><span>Sincronizar faturas</span><Switch checked={Boolean(settings.sync_invoices)} onCheckedChange={(checked) => setSettings((p) => ({ ...p, sync_invoices: checked }))} /></div>
           <div className='flex flex-wrap gap-3 md:col-span-2'>
+            {isShopifySettings(settings) ? <Button
+              className='!h-10 !w-44 !justify-center !rounded-md !bg-emerald-600 !text-white hover:!bg-emerald-700'
+              onClick={() => handleConnectShopify()}
+            >
+              Connect Shopify
+            </Button> : null}
             <Button
               className='!h-10 !w-28 !justify-center !rounded-md !bg-black !text-white hover:!bg-black/90'
               onClick={() => void handleSave()}
