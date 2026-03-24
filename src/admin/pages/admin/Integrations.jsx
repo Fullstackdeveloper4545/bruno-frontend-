@@ -11,6 +11,11 @@ const notifyIntegrationStatusUpdated = () => {
     window.dispatchEvent(new Event(INTEGRATION_STATUS_EVENT));
   }
 };
+const isShopifySettings = (settings) => {
+  const baseUrl = String(settings?.base_url || "").toLowerCase();
+  const name = String(settings?.integration_name || "").toLowerCase();
+  return baseUrl.includes("myshopify.com") || baseUrl.includes("shopify") || name.includes("shopify");
+};
 const Integrations = () => {
   const [settings, setSettings] = useState({
     base_url: "",
@@ -79,9 +84,10 @@ const Integrations = () => {
     value={settings.integration_name || ""}
     onChange={(e) => setSettings((p) => ({ ...p, integration_name: e.target.value }))}
   />
-          <Input className='h-12 rounded-xl border-slate-400/60 focus:border-slate-500 focus:ring-0' placeholder='Chave API / token de acesso' type='password' value={settings.api_key || ""} onChange={(e) => setSettings((p) => ({ ...p, api_key: e.target.value }))} />
+          <Input className='h-12 rounded-xl border-slate-400/60 focus:border-slate-500 focus:ring-0' placeholder='Shopify Admin API access token (recommended)' type='password' value={settings.api_key || ""} onChange={(e) => setSettings((p) => ({ ...p, api_key: e.target.value }))} />
           <Input className='h-12 rounded-xl border-slate-400/60 focus:border-slate-500 focus:ring-0' placeholder='Segredo do webhook' value={settings.webhook_secret || ""} onChange={(e) => setSettings((p) => ({ ...p, webhook_secret: e.target.value }))} />
           {settings.has_api_key && !settings.api_key ? <p className='text-xs text-muted-foreground md:col-span-2'>Chave guardada (oculta). Cole uma nova para substituir.</p> : null}
+          {isShopifySettings(settings) ? <p className='text-xs text-muted-foreground md:col-span-2'>For Shopify, paste the Admin API access token from your Shopify app (must include <span className='font-medium'>read_products</span>). Do not paste the API key/secret. Legacy format supported: <span className='font-mono'>api_key:password</span>.</p> : null}
           <div className='flex h-12 items-center gap-3 rounded-xl border border-slate-400/60 bg-white px-4 text-sm'><span>Integração ativa</span><Switch checked={settings.is_active} onCheckedChange={(checked) => setSettings((p) => ({ ...p, is_active: checked }))} /></div>
           <div className='flex h-12 items-center gap-3 rounded-xl border border-slate-400/60 bg-white px-4 text-sm'><span>Sincronizar faturas</span><Switch checked={Boolean(settings.sync_invoices)} onCheckedChange={(checked) => setSettings((p) => ({ ...p, sync_invoices: checked }))} /></div>
           <div className='flex flex-wrap gap-3 md:col-span-2'>
