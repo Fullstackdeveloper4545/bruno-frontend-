@@ -14,9 +14,13 @@ const notifyIntegrationStatusUpdated = () => {
 const Integrations = () => {
   const [settings, setSettings] = useState({
     base_url: "",
+    api_key: "",
     integration_name: "",
     webhook_secret: "",
-    is_active: false
+    is_active: false,
+    sync_invoices: true,
+    has_api_key: false,
+    has_webhook_secret: false
   });
   const [logs, setLogs] = useState([]);
   const [message, setMessage] = useState("");
@@ -46,8 +50,11 @@ const Integrations = () => {
     value={settings.integration_name || ""}
     onChange={(e) => setSettings((p) => ({ ...p, integration_name: e.target.value }))}
   />
+          <Input className='h-12 rounded-xl border-slate-400/60 focus:border-slate-500 focus:ring-0' placeholder='Chave API / token de acesso' type='password' value={settings.api_key || ""} onChange={(e) => setSettings((p) => ({ ...p, api_key: e.target.value }))} />
           <Input className='h-12 rounded-xl border-slate-400/60 focus:border-slate-500 focus:ring-0' placeholder='Segredo do webhook' value={settings.webhook_secret || ""} onChange={(e) => setSettings((p) => ({ ...p, webhook_secret: e.target.value }))} />
+          {settings.has_api_key && !settings.api_key ? <p className='text-xs text-muted-foreground md:col-span-2'>Chave guardada (oculta). Cole uma nova para substituir.</p> : null}
           <div className='flex h-12 items-center gap-3 rounded-xl border border-slate-400/60 bg-white px-4 text-sm'><span>Integração ativa</span><Switch checked={settings.is_active} onCheckedChange={(checked) => setSettings((p) => ({ ...p, is_active: checked }))} /></div>
+          <div className='flex h-12 items-center gap-3 rounded-xl border border-slate-400/60 bg-white px-4 text-sm'><span>Sincronizar faturas</span><Switch checked={Boolean(settings.sync_invoices)} onCheckedChange={(checked) => setSettings((p) => ({ ...p, sync_invoices: checked }))} /></div>
           <div className='flex flex-wrap gap-3 md:col-span-2'>
             <Button
               className='!h-10 !w-28 !justify-center !rounded-md !bg-black !text-white hover:!bg-black/90'

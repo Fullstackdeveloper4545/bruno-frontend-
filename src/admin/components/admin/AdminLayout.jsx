@@ -88,7 +88,7 @@ const detectIntegrationProvider = (baseUrl) => {
   return null;
 };
 const buildIntegrationBadgeLabel = (settings) => {
-  if (!settings?.is_active) return "Integração ativa";
+  if (!settings?.is_active) return "Integração inativa";
   const explicitName = String(settings.integration_name || "").trim();
   if (explicitName) return `${explicitName} ativa`;
   const provider = detectIntegrationProvider(settings.base_url);
