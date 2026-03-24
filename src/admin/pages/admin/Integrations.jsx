@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { PageHeader } from "@/admin/components/admin/PageHeader";
 import { adminApi } from "@/lib/adminApi";
 import { toApiUrl } from "@/lib/api";
+import { PRESERVE_SESSION_KEY } from "@/contexts/AdminAuthContext";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -89,6 +90,11 @@ const Integrations = () => {
     }
     const returnTo = `${window.location.origin}/admin/integrations`;
     const startPath = `/api/integration/shopify/oauth/start?shop=${encodeURIComponent(shop)}&return_to=${encodeURIComponent(returnTo)}`;
+    try {
+      window.sessionStorage.setItem(PRESERVE_SESSION_KEY, "1");
+    } catch (_) {
+      // ignore if storage is unavailable
+    }
     window.location.href = toApiUrl(startPath);
   };
   return <div className='space-y-6'>

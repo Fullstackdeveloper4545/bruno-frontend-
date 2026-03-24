@@ -4,6 +4,7 @@ import { postJson } from "@/lib/api";
 const ADMIN_EMAIL = "admin123ecom@gmail.com";
 const STORAGE_KEY = "admin:auth:session";
 const UNLOAD_MARKER_KEY = "admin:auth:unload";
+const PRESERVE_SESSION_KEY = "admin:auth:preserve-once";
 const getNavigationType = () => {
   if (typeof window === "undefined" || typeof performance === "undefined") {
     return null;
@@ -18,6 +19,11 @@ const readStoredAdminSession = () => {
   const unloadMarkerExists = window.sessionStorage.getItem(UNLOAD_MARKER_KEY) === "1";
   if (unloadMarkerExists) {
     window.sessionStorage.removeItem(UNLOAD_MARKER_KEY);
+    const preserveOnce = window.sessionStorage.getItem(PRESERVE_SESSION_KEY) === "1";
+    if (preserveOnce) {
+      window.sessionStorage.removeItem(PRESERVE_SESSION_KEY);
+      return window.sessionStorage.getItem(STORAGE_KEY) === "true";
+    }
     const navigationType = getNavigationType();
     if (navigationType !== "reload") {
       window.sessionStorage.removeItem(STORAGE_KEY);
@@ -115,5 +121,6 @@ const useAdminAuth = () => {
 export {
   AdminAuthProvider,
   useAdminAuth,
-  ADMIN_EMAIL
+  ADMIN_EMAIL,
+  PRESERVE_SESSION_KEY
 };
