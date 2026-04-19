@@ -384,7 +384,7 @@ const AdminLayout = () => {
     [location.pathname, location.search, navigate]
   );
   return <SidebarProvider open={isSidebarOpen} onOpenChange={setIsSidebarOpen}>
-    <div className="flex h-svh w-full items-stretch overflow-hidden">
+    <div className="flex min-h-svh w-full items-stretch overflow-hidden bg-[#f2f5f5]">
       {isMobileSidebarOpen ? <div className="fixed inset-0 z-[70] md:hidden">
         <button type="button" aria-label="Close sidebar" className="absolute inset-0 bg-black/50" onClick={() => setIsMobileSidebarOpen(false)} />
         <aside className="relative z-[71] flex h-full w-[85vw] max-w-80 flex-col border-r border-border/60 bg-sidebar text-sidebar-foreground shadow-xl">
@@ -489,11 +489,11 @@ const AdminLayout = () => {
         
       </Sidebar>
       <SidebarRail className="hidden md:block" />
-      <SidebarInset className="min-w-0 h-svh overflow-hidden bg-[#f2f5f5]">
+      <SidebarInset className="min-w-0 min-h-svh overflow-hidden bg-[#f2f5f5]">
         <div className="relative z-10 flex h-full min-h-0 flex-col">
           <header className="sticky top-0 z-20 border-b border-primary/30 bg-primary text-primary-foreground shadow-sm">
-            <div className="mx-auto flex w-full max-w-7xl items-center justify-between gap-4 px-4 py-3 lg:px-8">
-              <div className="flex items-center gap-3">
+            <div className="mx-auto flex w-full max-w-7xl flex-wrap items-center justify-between gap-3 px-4 py-3 lg:px-8">
+              <div className="flex min-w-0 items-center gap-3">
                 <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsMobileSidebarOpen(true)} aria-label="Open menu">
                   <Menu className="h-5 w-5" />
                 </Button>
@@ -501,9 +501,9 @@ const AdminLayout = () => {
                   <Menu className="h-4 w-4" />
                 </SidebarTrigger>
              
-                <div className="leading-tight">
-                  <p className="text-[16px] uppercase tracking-[0.2em] text-white/80 mb-1">VISÃO DE ADMINISTRADOR</p>
-                  <p className="font-display text-[14px] text-white">anadias.run</p>
+                <div className="min-w-0 leading-tight">
+                  <p className="mb-1 text-[11px] uppercase tracking-[0.18em] text-white/80 sm:text-[16px] sm:tracking-[0.2em]">VISÃO DE ADMINISTRADOR</p>
+                  <p className="truncate font-display text-[12px] text-white sm:text-[14px]">anadias.run</p>
                 </div>
                 {/* <Badge variant="secondary" className="hidden gap-1 text-[10px] uppercase tracking-[0.2em] md:inline-flex">
                   <span className="h-1.5 w-1.5 rounded-full bg-emerald-500" />
@@ -521,7 +521,7 @@ const AdminLayout = () => {
                   />
                 </div>
               </div> : null}
-              <div className="flex items-center gap-2">
+              <div className="ml-auto flex items-center gap-2">
                 <span className="hidden text-xs text-white/80 lg:block">{formatDate()}</span>
                 <div className="relative">
                   <Popover open={isNotificationsOpen} onOpenChange={setIsNotificationsOpen}>
@@ -533,7 +533,7 @@ const AdminLayout = () => {
                         </span> : null}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="absolute right-0 top-full z-50 mt-2 w-[360px] p-0">
+                    <PopoverContent className="absolute right-0 top-full z-50 mt-2 w-[calc(100vw-2rem)] max-w-[360px] p-0">
                       <div className="border-b px-4 py-3">
                         <p className="text-sm font-semibold">Notificações</p>
                         <p className="text-xs text-muted-foreground">
@@ -572,7 +572,7 @@ const AdminLayout = () => {
                         <ChevronDown className="h-4 w-4" />
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="absolute right-0 top-full mt-3 w-56 rounded-lg border border-black/10 bg-white p-0 text-foreground shadow-lg">
+                    <PopoverContent className="absolute right-0 top-full mt-3 w-[min(14rem,calc(100vw-2rem))] rounded-lg border border-black/10 bg-white p-0 text-foreground shadow-lg">
                       <div className="px-4 py-3 text-right">
                         <p className="text-sm font-semibold">{adminName}</p>
                         <p className="text-xs text-muted-foreground">Admin</p>
@@ -597,10 +597,21 @@ const AdminLayout = () => {
                   </Popover>
                 </div>
               </div>
+              {isOrdersSection ? <div className="w-full md:hidden">
+                <div className="relative">
+                  <Search className="absolute left-3 top-2.5 h-4 w-4 text-muted-foreground" />
+                  <Input
+                    className="h-9 w-full rounded-full bg-white pl-9 text-foreground"
+                    placeholder="Procurar encomendas, SKUs, clientes"
+                    value={ordersSearchQuery}
+                    onChange={(event) => handleOrdersSearchChange(event.target.value)}
+                  />
+                </div>
+              </div> : null}
             </div>
           </header>
           <main className="flex-1 min-h-0 overflow-y-auto">
-            <div className="mx-auto w-full max-w-7xl px-4 pb-12 pt-6 lg:px-8">
+            <div className="mx-auto w-full max-w-7xl px-4 pb-12 pt-4 sm:pt-6 lg:px-8">
               <Outlet />
             </div>
           </main>

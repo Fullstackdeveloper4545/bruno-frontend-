@@ -107,23 +107,25 @@ const Navbar = () => {
                     <div className='bg-primary text-primary-foreground p-2 text-center text-[12px]'>
                         Ofertas e Informacoes Saldos
                     </div>
-                    <div className='flex w-full justify-between items-center px-4 md:px-16 py-2'>
-                        <div className='hidden md:flex w-2/12 justify-evenly'>
+                    <div className='mx-auto flex w-full max-w-[1380px] items-center justify-between gap-3 px-4 py-3 md:px-8 lg:px-16'>
+                        <div className='hidden flex-1 items-center gap-6 md:flex'>
                             <Link to='/about-us' className=''>About Us</Link>
                             <Link to='/blog'>Blog</Link>
                             <Link to='/contact'>Contacts</Link>
                         </div>
-                        <div className='w-4/12 md:w-1/12 flex justify-center'>
-                            <img
-                                src={logoSrc}
-                                alt='Logo'
-                                className='h-8 md:h-10 object-contain'
-                                data-theme-image='public_logo_url'
-                                data-theme-image-label='Logo'
-                                onError={() => setLogoSrc(logo)}
-                            />
+                        <div className='flex min-w-0 flex-1 items-center justify-center md:flex-none'>
+                            <Link to='/' aria-label='Go to homepage' className='flex items-center justify-center'>
+                                <img
+                                    src={logoSrc}
+                                    alt='Logo'
+                                    className='h-8 w-auto object-contain md:h-10'
+                                    data-theme-image='public_logo_url'
+                                    data-theme-image-label='Logo'
+                                    onError={() => setLogoSrc(logo)}
+                                />
+                            </Link>
                         </div>
-                        <div className='hidden md:flex w-1/12 justify-between'>
+                        <div className='hidden flex-1 items-center justify-end gap-4 md:flex'>
                             <Search />
                             <User />
                             <Link to='/cart' className='relative' aria-label='Open cart'>
@@ -135,13 +137,23 @@ const Navbar = () => {
                                 ) : null}
                             </Link>
                         </div>
-                        <button
-                            className='md:hidden'
-                            onClick={() => setOpen((v) => !v)}
-                            aria-label='Toggle menu'
-                        >
-                            {open ? <X /> : <Menu />}
-                        </button>
+                        <div className='flex items-center gap-3 md:hidden'>
+                            <Link to='/cart' className='relative' aria-label='Open cart'>
+                                <ShoppingCart />
+                                {cartCount > 0 ? (
+                                    <span className='absolute -top-2 -right-2 min-w-4 h-4 rounded-full bg-primary text-primary-foreground text-[10px] px-1 flex items-center justify-center'>
+                                        {cartCount > 99 ? '99+' : cartCount}
+                                    </span>
+                                ) : null}
+                            </Link>
+                            <button
+                                className='inline-flex items-center justify-center'
+                                onClick={() => setOpen((v) => !v)}
+                                aria-label='Toggle menu'
+                            >
+                                {open ? <X /> : <Menu />}
+                            </button>
+                        </div>
                     </div>
                     <div className='hidden md:flex flex-wrap justify-center gap-x-8 gap-y-3 py-6 border-t border-gray-300 px-6'>
                         {categories.map((category) => (

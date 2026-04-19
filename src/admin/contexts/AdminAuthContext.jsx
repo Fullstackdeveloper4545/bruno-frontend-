@@ -1,10 +1,11 @@
 import { createContext, useContext, useEffect, useMemo, useState } from "react";
 import { postJson } from "@/lib/api";
 
-const ADMIN_EMAIL = "admin123ecom@gmail.com";
+const ADMIN_EMAIL = String(import.meta.env.VITE_ADMIN_EMAIL || "admin123ecom@gmail.com").trim().toLowerCase();
 const STORAGE_KEY = "admin:auth:session";
 const UNLOAD_MARKER_KEY = "admin:auth:unload";
 const PRESERVE_SESSION_KEY = "admin:auth:preserve-once";
+const isAllowedAdminRole = (role) => ["admin", "super_admin"].includes(String(role || "").trim().toLowerCase());
 const getNavigationType = () => {
   if (typeof window === "undefined" || typeof performance === "undefined") {
     return null;
@@ -50,17 +51,6 @@ const AdminAuthProvider = ({ children }) => {
     const normalizedPassword = String(password || "");
     const normalizedTotpCode = String(totpCode || "").trim();
 
-    if (normalizedEmail !== ADMIN_EMAIL) {
-      if (typeof window !== "undefined") {
-        window.sessionStorage.removeItem(UNLOAD_MARKER_KEY);
-        window.sessionStorage.removeItem(STORAGE_KEY);
-        window.sessionStorage.removeItem("admin:email");
-        window.localStorage.removeItem("admin:email");
-      }
-      setIsAdmin(false);
-      return false;
-    }
-
     try {
       const result = await postJson("/api/auth/login", {
         email: normalizedEmail,
@@ -74,6 +64,9 @@ const AdminAuthProvider = ({ children }) => {
           requiresTwoFactor: true,
           message: result?.message || "Two-factor code required",
         };
+      }
+      if (!isAllowedAdminRole(result?.role)) {
+        throw new Error("This account does not have admin access");
       }
       setIsAdmin(true);
       if (typeof window !== "undefined") {

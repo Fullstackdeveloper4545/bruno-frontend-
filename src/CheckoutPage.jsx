@@ -190,18 +190,18 @@ const CheckoutPage = () => {
     <>
       <Navbar />
 
-      <section className='bg-white px-5 py-10 font-["Poppins",sans-serif]'>
-        <div className='w-[85%] mx-auto max-w-[1180px]'>
+      <section className='bg-white px-4 py-8 font-["Poppins",sans-serif] sm:px-5 sm:py-10'>
+        <div className='mx-auto w-full max-w-[1180px]'>
           <h1 className='m-0 text-[32px] tracking-[1px] text-[#111]'>CHECKOUT</h1>
           <p className='mt-2 text-[14px] tracking-[1.5px] text-[#8b93a7] uppercase'>Carrinho | Pagamento</p>
         </div>
 
         <div
-          className='w-[85%] mx-auto max-w-[1180px] mt-8 grid grid-cols-1 lg:grid-cols-[1fr_1px_360px] gap-8 items-start'
+          className='mx-auto mt-8 grid w-full max-w-[1180px] grid-cols-1 gap-8 items-start lg:grid-cols-[1fr_1px_360px]'
           data-theme-layout-root='checkout'
         >
           <div data-theme-layout-section='form'>
-            <div className='flex items-center justify-between mb-6'>
+            <div className='mb-6 flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between'>
               <label className='text-[16px] tracking-[1.2px] text-[#222] uppercase'>Email</label>
               <p className='text-[14px] text-[#8b93a7]'>Ja tem uma conta? <span className='text-[#111] underline cursor-pointer'>Log in</span></p>
             </div>
@@ -210,7 +210,7 @@ const CheckoutPage = () => {
               placeholder='you@email.com'
               value={email}
               onChange={(event) => setEmail(event.target.value)}
-              className='w-full max-w-[520px] border-0 border-b border-[#d6d6d6] pb-2 outline-none text-[12px]'
+              className='w-full max-w-[520px] border-0 border-b border-[#d6d6d6] pb-2 text-[12px] outline-none'
             />
 
             <div className='mt-10'>
@@ -345,7 +345,7 @@ const CheckoutPage = () => {
 
           <div className='hidden lg:block w-px bg-[#e2e5ec] h-[50%]' />
 
-          <aside data-theme-layout-section='summary'>
+          <aside className='lg:sticky lg:top-6' data-theme-layout-section='summary'>
             <h2 className='m-0 text-[28px] tracking-[1px] text-[#111] uppercase'>O seu carrinho</h2>
 
             <div className='mt-6 grid gap-6'>
@@ -353,13 +353,13 @@ const CheckoutPage = () => {
                 <p className='text-[14px] text-[#8b93a7]'>Sem produtos no carrinho.</p>
               ) : (
                 cartItems.map((item) => (
-                  <div key={`checkout-${item.id}`} className='flex gap-4 items-start'>
+                  <div key={`checkout-${item.id}`} className='flex items-start gap-4'>
                     <img
                       src={item.image}
                       alt={item.name}
-                      className='w-[66px] h-[66px] object-cover bg-[#f3f4f6]'
+                      className='h-[66px] w-[66px] shrink-0 bg-[#f3f4f6] object-cover'
                     />
-                    <div>
+                    <div className='min-w-0'>
                       <p className='m-0 text-[16px] text-[#111]'>{item.name}</p>
                       <p className='m-0 text-[14px] text-[#8b93a7]'>
                         {[item.color || 'Cor disponivel', item.size].filter(Boolean).join(' | ')} | Qtd: {item.qty}

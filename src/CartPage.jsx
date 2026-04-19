@@ -310,8 +310,8 @@ const CartPage = () => {
   }
 
   const renderCartHeader = () => (
-    <div className='flex items-end gap-2.5 mb-[22px]'>
-      <h1 className='m-0 text-[32px] leading-[1.05] tracking-[0.25px] font-medium text-[#111111]'>CARRINHO</h1>
+    <div className='mb-[22px] flex flex-col gap-1 sm:flex-row sm:items-end sm:gap-2.5'>
+      <h1 className='m-0 text-[28px] leading-[1.05] tracking-[0.25px] font-medium text-[#111111] sm:text-[32px]'>CARRINHO</h1>
       <span className='mb-1 text-[#9ca3af] text-[12px] font-medium'>({cartItems.length} produtos)</span>
     </div>
   )
@@ -331,7 +331,7 @@ const CartPage = () => {
     ) : (
       <div className='grid gap-[22px] mb-[48px]'>
         {cartItems.map((item) => (
-          <article key={item.id} className='grid grid-cols-[22px_80px_1fr_auto] items-center gap-x-3'>
+          <article key={item.id} className='grid grid-cols-[22px_72px_minmax(0,1fr)] gap-x-3 gap-y-3 rounded-xl border border-black/5 p-3 sm:grid-cols-[22px_80px_1fr_auto] sm:items-center sm:rounded-none sm:border-0 sm:p-0'>
             <button
               type='button'
               className='border-0 bg-transparent text-[#a1a1aa] text-[17px] leading-none p-0 cursor-pointer'
@@ -341,7 +341,7 @@ const CartPage = () => {
               x
             </button>
 
-            <div className='w-20 h-[62px] bg-[#f4f4f5] overflow-hidden'>
+            <div className='h-[62px] w-[72px] bg-[#f4f4f5] overflow-hidden sm:w-20'>
               <img src={item.image} alt={item.name} className='w-full h-full object-cover' />
             </div>
 
@@ -352,7 +352,8 @@ const CartPage = () => {
               </p>
             </div>
 
-            <div className='flex items-center gap-[14px]'>
+            <div className='col-span-3 flex items-center justify-between gap-3 pl-[calc(22px+0.75rem)] sm:col-span-1 sm:pl-0'>
+              <div className='flex items-center gap-[14px]'>
               <button
                 type='button'
                 className='w-6 h-6 rounded-full border border-[#b7b7b7] text-[#6b7280] inline-flex items-center justify-center text-[13px]'
@@ -368,6 +369,7 @@ const CartPage = () => {
               >
                 +
               </button>
+              </div>
               <span className='text-[20px] font-normal text-[#1f1f1f] tracking-[0.2px] min-w-[86px] text-right'>
                 {formatEuro(Number(item.unitPrice || 0) * Number(item.qty || 0))}
               </span>
@@ -380,13 +382,13 @@ const CartPage = () => {
   const renderCoupon = () => (
     <div className='max-w-[500px]'>
       <p className='m-0 mb-2 text-[12px] tracking-[0.3px] text-[#222]'>Tem um cupao? Insira o seu codigo.</p>
-      <div className='flex items-center gap-2.5'>
+      <div className='flex flex-col gap-2.5 sm:flex-row sm:items-center'>
         <input
           type='text'
           placeholder='Codigo de cupao'
           value={couponCode}
           onChange={(event) => setCouponCode(event.target.value)}
-          className='w-full max-w-[240px] border-0 border-b border-[#c7c7c7] text-[11px] py-1.5 outline-none bg-transparent'
+          className='w-full max-w-full border-0 border-b border-[#c7c7c7] bg-transparent py-1.5 text-[11px] outline-none sm:max-w-[240px]'
         />
         <button
           type='button'
@@ -464,15 +466,15 @@ const CartPage = () => {
     <>
       <Navbar />
 
-      <section className='bg-white min-h-[520px] px-5 pt-[34px] pb-6 font-["Poppins",sans-serif]'>
+      <section className='bg-white min-h-[520px] px-4 pt-[24px] pb-6 font-["Poppins",sans-serif] sm:px-5 sm:pt-[34px]'>
         <div className='max-w-[1180px] mx-auto'>
-          <div className='flex items-start justify-between gap-4 mb-5'>
+          <div className='mb-5 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between'>
             {isEditingLayout ? (
               <p className='m-0 text-[12px] text-black/60'>Modo layout: arraste as secções (≡) para reorganizar.</p>
             ) : (
               <span />
             )}
-            <div className='flex items-center gap-2'>
+            <div className='flex flex-wrap items-center gap-2'>
               <button
                 type='button'
                 className='border border-black/15 bg-white text-[11px] tracking-[0.6px] py-[7px] px-3 cursor-pointer'

@@ -382,19 +382,19 @@ function ProductDetailsPage() {
     <>
       <Navbar />
       <div className='flex flex-col' data-theme-layout-root='product-details'>
-      <section className='mt-[6vh] mb-[10vh]' data-theme-layout-section='details'>
-        <div className='w-[90vw] mx-auto grid grid-cols-1 lg:grid-cols-[1.2fr_0.8fr] gap-10'>
-          <div className='border border-black/5 flex items-center justify-center'>
-            <img src={selectedImage} alt={product?.title || 'Product image'} className='w-full' />
+      <section className='mb-[10vh] mt-[4vh] px-4 sm:px-0' data-theme-layout-section='details'>
+        <div className='mx-auto grid w-full max-w-[1240px] grid-cols-1 gap-8 sm:w-[90vw] lg:grid-cols-[1.2fr_0.8fr] lg:gap-10'>
+          <div className='flex items-center justify-center overflow-hidden rounded-2xl border border-black/5 bg-white'>
+            <img src={selectedImage} alt={product?.title || 'Product image'} className='w-full object-cover' />
           </div>
 
-          <div>
+          <div className='min-w-0'>
             <p className='text-[12px] text-black/60'>Sapatilhas | {product?.category || 'Categoria'}</p>
-            <div className='flex items-start justify-between gap-4 mt-2'>
-              <h1 className='text-[24px] font-semibold'>{product?.title || 'Produto'}</h1>
-              <div className='text-right flex gap-4'>
-                {hasDiscount ? <p className='text-[24px] line-through text-black/40'>{formatPrice(activeCompareAt)}</p> : null}
-                <p className='text-[24px] font-semibold'>{formatPrice(activePrice)}</p>
+            <div className='mt-2 flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between'>
+              <h1 className='text-[24px] font-semibold leading-tight sm:max-w-[70%]'>{product?.title || 'Produto'}</h1>
+              <div className='flex flex-wrap gap-3 text-left sm:justify-end sm:text-right'>
+                {hasDiscount ? <p className='text-[20px] line-through text-black/40 sm:text-[24px]'>{formatPrice(activeCompareAt)}</p> : null}
+                <p className='text-[22px] font-semibold sm:text-[24px]'>{formatPrice(activePrice)}</p>
               </div>
             </div>
 
@@ -406,7 +406,7 @@ function ProductDetailsPage() {
                 <span className='text-[12px] font-semibold'>Tamanhos</span>
                 <button className='text-[11px] text-black/60'>Guia de Tamanhos</button>
               </div>
-              <div className='mt-3 grid grid-cols-6 gap-2 text-[11px]'>
+              <div className='mt-3 grid grid-cols-3 gap-2 text-[11px] sm:grid-cols-4 lg:grid-cols-6'>
                 {availableSizes.length > 0 ? (
                   availableSizes.map((size) => (
                     <button
@@ -453,7 +453,7 @@ function ProductDetailsPage() {
               </div>
             </div>
 
-            <div className='mt-6 flex items-center justify-between border border-black/10'>
+            <div className='mt-6 flex max-w-[220px] items-center justify-between rounded-md border border-black/10'>
               <button className='px-4 py-2 text-[14px]' onClick={() => setQuantity((q) => Math.max(1, q - 1))}>
                 -
               </button>
@@ -495,7 +495,7 @@ function ProductDetailsPage() {
           </div>
         </div>
 
-        <div className='w-[90vw] mx-auto mt-12'>
+        <div className='mx-auto mt-12 w-full max-w-[1240px] sm:w-[90vw]'>
           <details className='border-t border-black/10 py-4'>
             <summary className='cursor-pointer text-[16px] font-semibold flex items-center justify-between'>
               Descricao
@@ -517,7 +517,7 @@ function ProductDetailsPage() {
         </div>
       </section>
 
-      <section className='w-[90vw] mx-auto mt-14' data-theme-layout-section='recommended'>
+      <section className='mx-auto mt-14 w-full max-w-[1240px] px-4 sm:w-[90vw] sm:px-0' data-theme-layout-section='recommended'>
         <h3 className='text-[16px] font-semibold mb-6'>Produtos Recomendados</h3>
         <div>
           <Swiper

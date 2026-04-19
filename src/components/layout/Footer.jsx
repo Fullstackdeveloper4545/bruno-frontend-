@@ -2,55 +2,60 @@ import React from 'react'
 
 function Footer() {
   return (
-    <footer className='bg-primary text-primary-foreground mt-[10vh]'>
-      <div className='w-[90vw] mx-auto py-12'>
-        <div className='flex flex-wrap gap-y-10'>
-          <div className='w-full md:w-1/4'>
-            <h4 className='text-[16px] mb-4'>Menu</h4>
-            <ul className='text-[14px] space-y-2'>
+    <footer className='mt-[10vh] bg-primary text-primary-foreground'>
+      <div className='mx-auto w-[90vw] max-w-[1366px] py-12 sm:py-14'>
+        <div className='grid gap-10 md:grid-cols-2 xl:grid-cols-4'>
+          <div>
+            <h4 className='mb-4 text-[16px]'>Menu</h4>
+            <ul className='space-y-2 text-[14px]'>
               <li>Loja</li>
-              <li>Sobre Nós</li>
+              <li>Sobre Nos</li>
               <li>Contactos</li>
               <li>Blog</li>
             </ul>
           </div>
-          <div className='w-full md:w-1/4'>
-            <h4 className='text-[16px] mb-4'>Precisa de ajuda?</h4>
-            <ul className='text-[14px] space-y-2'>
+
+          <div>
+            <h4 className='mb-4 text-[16px]'>Precisa de ajuda?</h4>
+            <ul className='space-y-2 text-[14px]'>
               <li>Apoio ao Cliente</li>
-              <li>Trocas e Devoluções</li>
+              <li>Trocas e Devolucoes</li>
             </ul>
           </div>
-          <div className='w-full md:w-1/4'>
-            <h4 className='text-[16px] mb-4'>Contactos</h4>
-            <ul className='text-[14px] space-y-2'>
+
+          <div>
+            <h4 className='mb-4 text-[16px]'>Contactos</h4>
+            <ul className='space-y-2 text-[14px]'>
               <li>R. Baptista Lopes 16,</li>
               <li>8000-225 Faro</li>
               <li>Rua Ilha dos Amores 30 C</li>
               <li>1990-118 Lisboa</li>
-              <li>Rua D. João I 767 4450-166</li>
+              <li>Rua D. Joao I 767 4450-166</li>
               <li>Matosinhos</li>
               <li>(+351) 916 171 577*</li>
               <li>geral@anadias.run</li>
             </ul>
           </div>
-          <div className='w-full md:w-1/4'>
-            <div className='flex'>
+
+          <div>
+            <div className='flex overflow-hidden rounded-md bg-white'>
               <input
                 type='email'
                 placeholder='Email'
-                className='w-full bg-white text-black text-[14px] px-4 py-4 outline-none'
+                className='w-full min-w-0 bg-white px-4 py-4 text-[14px] text-black outline-none'
               />
-              <button className='bg-primary-foreground px-5 text-primary'>→</button>
+              <button className='shrink-0 bg-primary-foreground px-5 text-primary' aria-label='Subscribe'>
+                →
+              </button>
             </div>
           </div>
         </div>
 
-        <div className='border-t border-primary-foreground/20 mt-10 pt-6 flex flex-wrap items-center justify-between text-[11px]'>
+        <div className='mt-10 flex flex-col gap-4 border-t border-primary-foreground/20 pt-6 text-[11px] sm:flex-row sm:items-center sm:justify-between'>
           <span>© 2026 All Rights Reserved</span>
-          <div className='flex gap-6'>
-            <span>Política de Privacidade</span>
-            <span>Termos e Condições</span>
+          <div className='flex flex-wrap gap-4 sm:gap-6'>
+            <span>Politica de Privacidade</span>
+            <span>Termos e Condicoes</span>
           </div>
         </div>
       </div>

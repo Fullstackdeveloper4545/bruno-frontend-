@@ -565,16 +565,16 @@ function App() {
 
       {isSectionEnabled('hero') ? (
         <section className='bg-white' style={{ order: sectionOrder.hero }} data-theme-layout-section='hero'>
-          <div className='hero-bg h-[90vh]' data-theme-image='public_home_hero_image' data-theme-image-label='Hero image'>
-            <div className='w-full md:w-3/12 text-white flex flex-col justify-center h-[90vh] md:ml-[10%] px-6 md:px-0'>
-              <h1 className='text-[32px] md:text-[46px]' data-theme-edit='public_home_content.hero_title'>
+          <div className='hero-bg min-h-[72svh] md:h-[90vh]' data-theme-image='public_home_hero_image' data-theme-image-label='Hero image'>
+            <div className='flex min-h-[72svh] w-full max-w-[640px] flex-col justify-center px-6 py-14 text-white md:ml-[10%] md:h-[90vh] md:px-0'>
+              <h1 className='text-[32px] leading-tight md:text-[46px]' data-theme-edit='public_home_content.hero_title'>
                 {homeContent.hero_title}
               </h1>
-              <p className='w-full md:w-9/12 py-4 text-[14px]' data-theme-edit='public_home_content.hero_body'>
+              <p className='w-full py-4 text-[14px] md:w-9/12' data-theme-edit='public_home_content.hero_body'>
                 {homeContent.hero_body}
               </p>
               <button
-                className='bg-primary text-primary-foreground py-2 w-full md:w-6/12'
+                className='w-full bg-primary py-3 text-primary-foreground sm:w-auto sm:min-w-[220px] md:w-6/12'
                 data-theme-edit='public_home_content.hero_cta_label'
               >
                 {homeContent.hero_cta_label}
@@ -734,16 +734,16 @@ function App() {
 
       {isSectionEnabled('promo') ? (
       <section className='mt-[10vh]' style={{ order: sectionOrder.promo }} data-theme-layout-section='promo'>
-        <div className='promo-bg h-[50vh] w-[90vw] mx-auto flex items-center justify-center' data-theme-image='public_home_promo_image' data-theme-image-label='Promo image'>
-          <div className='text-center text-white px-8 py-6'>
-            <h2 className='text-[32px]' data-theme-edit='public_home_content.promo_title'>
+        <div className='promo-bg mx-auto flex min-h-[340px] w-[90vw] items-center justify-center md:h-[50vh]' data-theme-image='public_home_promo_image' data-theme-image-label='Promo image'>
+          <div className='px-6 py-8 text-center text-white sm:px-8'>
+            <h2 className='text-[28px] leading-tight md:text-[32px]' data-theme-edit='public_home_content.promo_title'>
               {homeContent.promo_title}
             </h2>
-            <p className='py-3 text-[16px]' data-theme-edit='public_home_content.promo_body'>
+            <p className='py-3 text-[14px] md:text-[16px]' data-theme-edit='public_home_content.promo_body'>
               {homeContent.promo_body}
             </p>
             <button
-              className='bg-primary text-primary-foreground px-10 py-2 tracking-[2px] text-[14px]'
+              className='bg-primary px-8 py-3 text-[13px] tracking-[2px] text-primary-foreground sm:px-10'
               data-theme-edit='public_home_content.promo_cta_label'
             >
               {homeContent.promo_cta_label}

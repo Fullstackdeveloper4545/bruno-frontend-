@@ -2,8 +2,8 @@ import { cn } from '@/lib/utils'
 
 function Table({ className, ...props }) {
   return (
-    <div className="relative w-full overflow-auto">
-      <table className={cn('w-full caption-bottom text-sm', className)} {...props} />
+    <div className="relative w-full overflow-x-auto overflow-y-hidden rounded-xl">
+      <table className={cn('min-w-full caption-bottom text-sm', className)} {...props} />
     </div>
   )
 }
@@ -25,11 +25,11 @@ function TableRow({ className, ...props }) {
 }
 
 function TableHead({ className, ...props }) {
-  return <th className={cn('h-12 px-4 text-left align-middle font-medium text-muted-foreground', className)} {...props} />
+  return <th className={cn('h-12 whitespace-nowrap px-3 py-2 text-left align-middle font-medium text-muted-foreground sm:px-4', className)} {...props} />
 }
 
 function TableCell({ className, ...props }) {
-  return <td className={cn('p-4 align-middle', className)} {...props} />
+  return <td className={cn('whitespace-nowrap p-3 align-middle sm:p-4', className)} {...props} />
 }
 
 function TableCaption({ className, ...props }) {

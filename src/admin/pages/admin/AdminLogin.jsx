@@ -55,7 +55,7 @@ const AdminLogin = () => {
 
     setRequiresTwoFactor(false);
     setTwoFactorCode("");
-    setError("Invalid admin credentials. Redirecting to the store.");
+    setError(result?.message || "Invalid admin credentials. Redirecting to the store.");
     void adminApi.createLoginActivity({
       admin_email: email.trim().toLowerCase(),
       status: "failed",
