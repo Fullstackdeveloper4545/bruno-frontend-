@@ -799,7 +799,7 @@ function App() {
           <span data-theme-edit='public_home_content.stores_body'>{homeContent.stores_body}</span>
         </p>
 
-        <div className='mt-6 md:hidden'>
+        <div className='mx-auto mt-6 max-w-[320px] md:hidden'>
           <Swiper
             slidesPerView={1}
             spaceBetween={12}
@@ -809,7 +809,7 @@ function App() {
             className='mySwiper py-2'
           >
             {stores.map((store) => (
-              <SwiperSlide key={`store-mobile-${store.id}`} className='py-2'>
+              <SwiperSlide key={`store-mobile-${store.id}`} className='!flex justify-center py-2'>
                 <StoreCard image={store.image} title={store.name} />
               </SwiperSlide>
             ))}

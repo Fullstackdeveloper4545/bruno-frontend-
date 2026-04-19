@@ -152,7 +152,7 @@ const ContactPage = () => {
           <p className='m-0 mt-3 text-[14px] sm:text-[16px] leading-[1.5] tracking-[0.04em] text-[#333]'>
             Visita-nos numa das nossas lojas fisicas e recebe aconselhamento especializado.
           </p>
-          <div className='mt-6 md:hidden'>
+          <div className='mx-auto mt-6 max-w-[320px] md:hidden'>
             <Swiper
               slidesPerView={1}
               spaceBetween={12}
@@ -162,7 +162,7 @@ const ContactPage = () => {
               className='mySwiper'
             >
               {stores.map((store) => (
-                <SwiperSlide key={`store-mobile-${store.id}`} className='py-2'>
+                <SwiperSlide key={`store-mobile-${store.id}`} className='!flex justify-center py-2'>
                   <StoreCard image={store.image} title={store.name} />
                 </SwiperSlide>
               ))}
