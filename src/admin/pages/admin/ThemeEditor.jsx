@@ -19,6 +19,7 @@ import { Input } from "@/components/ui/input";
 import { adminApi } from "@/lib/adminApi";
 import { resolveAssetUrl, uploadFile } from "@/lib/api";
 import { DEFAULT_PRIMARY_COLOR, THEME_UPDATED_EVENT } from "@/lib/theme";
+import { CarouselManager } from "./CarouselManager";
 
 function settingsFromDraft(draft) {
   const safeDraft = draft && typeof draft === "object" ? draft : {};
@@ -28,6 +29,8 @@ function settingsFromDraft(draft) {
     public_logo_url: String(safeDraft.public_logo_url || "").trim(),
     public_radius: String(safeDraft.public_radius || "0.5rem").trim(),
     public_home_hero_image: String(safeDraft.public_home_hero_image || "").trim(),
+    public_home_hero_carousel_images: Array.isArray(safeDraft.public_home_hero_carousel_images) ? safeDraft.public_home_hero_carousel_images : [],
+
     public_home_promo_image: String(safeDraft.public_home_promo_image || "").trim(),
     public_category_card_bg_image: String(safeDraft.public_category_card_bg_image || "").trim(),
     public_home_hero_overlay_color: String(safeDraft.public_home_hero_overlay_color || "#000000").trim(),
@@ -68,6 +71,7 @@ function normalizeDraft(payload) {
     public_logo_url: String(settings?.public_logo_url || "").trim(),
     public_radius: String(settings?.public_radius || "0.5rem").trim(),
     public_home_hero_image: String(settings?.public_home_hero_image || "").trim(),
+    public_home_hero_carousel_images: Array.isArray(settings?.public_home_hero_carousel_images) ? settings.public_home_hero_carousel_images : [],
     public_home_promo_image: String(settings?.public_home_promo_image || "").trim(),
     public_category_card_bg_image: String(settings?.public_category_card_bg_image || "").trim(),
     public_home_hero_overlay_color: String(settings?.public_home_hero_overlay_color || "#000000").trim(),
@@ -977,7 +981,11 @@ export default function ThemeEditor() {
                   </select>
                 </div>
               </div>
-
+              <CarouselManager
+                images={draft.public_home_hero_carousel_images}
+                onImagesChange={(images) => setDraft((p) => ({ ...p, public_home_hero_carousel_images: images }))}
+                disabled={saving}
+        />
               <div className="rounded-lg border border-border/60 bg-background/60 p-3 text-sm text-muted-foreground">
                 <p className="font-medium text-foreground">Edit images in the preview</p>
                 <p className="mt-1">

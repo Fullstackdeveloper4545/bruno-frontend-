@@ -328,6 +328,7 @@ function buildProductCard(product, index) {
 
   return {
     id: product?.id || `product-${index}`,
+    categoryId: product?.category_id || null,
     image: imageUrl,
     title: product?.name_pt || product?.name_es || product?.sku || `Produto ${index + 1}`,
     color: extractColorLabel(primaryVariant?.attribute_values),
@@ -371,6 +372,26 @@ function App() {
   const [homeSections, setHomeSections] = useState(() => buildDefaultHomeSections('classic'))
   const [homeContent, setHomeContent] = useState(() => normalizeHomeContent(null))
   const [homeCustomSections, setHomeCustomSections] = useState(() => ({}))
+  const [heroCarouselImages, setHeroCarouselImages] = useState([])
+  const [athleteSettings, setAthleteSettings] = useState({
+    enabled: true,
+    product_count: 10,
+    category_ids: [],
+    category_limits: {},
+    sort_by: 'sales',
+  })
+  const [brandSettings, setBrandSettings] = useState({
+    enabled: true,
+    brand_ids: [],
+  })
+  const [performanceSettings, setPerformanceSettings] = useState({
+    enabled: true,
+    product_count: 10,
+    category_ids: [],
+    category_limits: {},
+    sort_by: 'sales',
+  })
+
   const publicLayoutRef = useRef('classic')
 
   useEffect(() => {
@@ -390,16 +411,88 @@ function App() {
         setHomeSections(normalizeHomeSections(settings?.public_home_sections, layout))
         setHomeContent(normalizeHomeContent(settings?.public_home_content))
         setHomeCustomSections(normalizeHomeCustomSections(settings?.public_home_custom_sections))
+
+        setHeroCarouselImages(Array.isArray(settings?.public_home_hero_carousel_images) ? settings.public_home_hero_carousel_images : [])
       } catch (error) {
         if (!active || error?.name === 'AbortError') return
         setPublicLayout('classic')
         setHomeSections(buildDefaultHomeSections('classic'))
         setHomeContent(normalizeHomeContent(null))
         setHomeCustomSections({})
+        setHeroCarouselImages([])
+      }
+    }
+
+    const loadAthleteSettings = async () => {
+      try {
+        const settings = await getJson('/api/system/athlete-settings', { signal: controller.signal })
+        if (!active) return
+        const normalized = {
+          enabled: typeof settings?.enabled === 'boolean' ? settings.enabled : true,
+          product_count: Number.isInteger(settings?.product_count) ? settings.product_count : 10,
+          category_ids: Array.isArray(settings?.category_ids) ? settings.category_ids : [],
+          category_limits: settings?.category_limits && typeof settings.category_limits === 'object' ? settings.category_limits : {},
+          sort_by: settings?.sort_by || 'sales',
+        }
+        setAthleteSettings(normalized)
+      } catch (error) {
+        if (!active || error?.name === 'AbortError') return
+        setAthleteSettings({
+          enabled: true,
+          product_count: 10,
+          category_ids: [],
+          category_limits: {},
+          sort_by: 'sales',
+        })
+      }
+    }
+
+    const loadBrandSettings = async () => {
+      try {
+        const settings = await getJson('/api/system/brand-settings', { signal: controller.signal })
+        if (!active) return
+        const normalized = {
+          enabled: typeof settings?.enabled === 'boolean' ? settings.enabled : true,
+          brand_ids: Array.isArray(settings?.brand_ids) ? settings.brand_ids : [],
+        }
+        setBrandSettings(normalized)
+      } catch (error) {
+        if (!active || error?.name === 'AbortError') return
+        setBrandSettings({
+          enabled: true,
+          brand_ids: [],
+        })
+      }
+    }
+
+    const loadPerformanceSettings = async () => {
+      try {
+        const settings = await getJson('/api/system/performance-settings', { signal: controller.signal })
+        if (!active) return
+        const normalized = {
+          enabled: typeof settings?.enabled === 'boolean' ? settings.enabled : true,
+          product_count: Number.isInteger(settings?.product_count) ? settings.product_count : 10,
+          category_ids: Array.isArray(settings?.category_ids) ? settings.category_ids : [],
+          category_limits: settings?.category_limits && typeof settings.category_limits === 'object' ? settings.category_limits : {},
+          sort_by: settings?.sort_by || 'sales',
+        }
+        setPerformanceSettings(normalized)
+      } catch (error) {
+        if (!active || error?.name === 'AbortError') return
+        setPerformanceSettings({
+          enabled: true,
+          product_count: 10,
+          category_ids: [],
+          category_limits: {},
+          sort_by: 'sales',
+        })
       }
     }
 
     void loadThemeSettings()
+    void loadAthleteSettings()
+    void loadBrandSettings()
+    void loadPerformanceSettings()
 
     const onThemeUpdated = (event) => {
       const payload = event?.detail?.settings ?? event?.detail ?? null
@@ -416,6 +509,9 @@ function App() {
       }
       if (Object.prototype.hasOwnProperty.call(payload, 'public_home_custom_sections')) {
         setHomeCustomSections(normalizeHomeCustomSections(payload?.public_home_custom_sections))
+      }
+      if (Object.prototype.hasOwnProperty.call(payload, 'public_home_hero_carousel_images')) {
+        setHeroCarouselImages(Array.isArray(payload?.public_home_hero_carousel_images) ? payload.public_home_hero_carousel_images : [])
       }
     }
 
@@ -509,14 +605,68 @@ function App() {
 
   const athleteProducts = useMemo(() => {
     const source = homeProducts.length > 0 ? homeProducts : fallbackProducts
-    return source.slice(0, 10)
-  }, [homeProducts])
+
+    // If specific categories are selected with limits, apply per-category filtering
+    if (athleteSettings.category_ids && athleteSettings.category_ids.length > 0) {
+      const categoryLimits = athleteSettings.category_limits || {}
+      const categoryIdSet = new Set(athleteSettings.category_ids)
+      const result = []
+      const categoryCount = {}
+      
+      // Iterate through products and collect up to the limit for each category
+      for (const product of source) {
+        const catId = String(product?.categoryId || '')
+        
+        // Only include products from selected categories
+        if (!categoryIdSet.has(catId)) continue
+        
+        // Check if we've reached the limit for this category
+        const limit = Number(categoryLimits[catId]) || 5
+        if ((categoryCount[catId] || 0) >= limit) continue
+        
+        result.push(product)
+        categoryCount[catId] = (categoryCount[catId] || 0) + 1
+      }
+      
+      // If we got some results, use them; otherwise fallback to all products
+      if (result.length > 0) {
+        return result.slice(0, athleteSettings.product_count)
+      }
+    }
+    
+    // Default behavior: no category filtering, just limit by product_count
+    return source.slice(0, athleteSettings.product_count)
+  }, [homeProducts, athleteSettings])
+
 
   const performanceProducts = useMemo(() => {
-    const source = homeProducts.length > 0 ? homeProducts : fallbackProducts
-    const promoted = source.filter((product) => product.isPromoted)
-    return (promoted.length > 0 ? promoted : source).slice(0, 10)
-  }, [homeProducts])
+  const source = homeProducts.length > 0 ? homeProducts : fallbackProducts;
+
+  if (performanceSettings.category_ids?.length > 0) {
+    const categoryLimits = performanceSettings.category_limits || {};
+    const categoryIdSet = new Set(performanceSettings.category_ids);
+    const result = [];
+    const categoryCount = {};
+
+    for (const product of source) {
+      const catId = String(product?.categoryId || "");
+
+      if (!categoryIdSet.has(catId)) continue;
+
+      const limit = Number(categoryLimits[catId]) || 5;
+      if ((categoryCount[catId] || 0) >= limit) continue;
+
+      result.push(product);
+      categoryCount[catId] = (categoryCount[catId] || 0) + 1;
+    }
+
+    if (result.length > 0) {
+      return result.slice(0, performanceSettings.product_count);
+    }
+  }
+
+  return source.slice(0, performanceSettings.product_count);
+}, [homeProducts, performanceSettings]);
 
   const categories = useMemo(() => {
     const source = homeCategories.length > 0 ? homeCategories : fallbackCategories
@@ -527,6 +677,29 @@ function App() {
     const source = homeStores.length > 0 ? homeStores : fallbackStores
     return source.slice(0, 3)
   }, [homeStores])
+
+
+  const displayedBrands = useMemo(() => {
+    if (!brandSettings.brand_ids || brandSettings.brand_ids.length === 0) {
+      return brandLogos
+    }
+    const brandIdSet = new Set(brandSettings.brand_ids)
+    // Map brand names to IDs for matching
+    const brandNameToId = {
+      'adidas': 'adidas',
+      'asics': 'asics',
+      'nike': 'nike',
+      'hoka': 'hoka',
+      'puma': 'puma',
+      'new balance': 'newbalance',
+      'garmin': 'garmin',
+      'brooks': 'brooks',
+    }
+    return brandLogos.filter((brand) => {
+      const brandId = brandNameToId[brand.alt.toLowerCase()]
+      return brandId && brandIdSet.has(brandId)
+    })
+  }, [brandSettings.brand_ids])
 
   const normalizedHomeSections = useMemo(
     () => normalizeHomeSections(homeSections, publicLayout),
@@ -565,7 +738,57 @@ function App() {
 
       {isSectionEnabled('hero') ? (
         <section className='bg-white' style={{ order: sectionOrder.hero }} data-theme-layout-section='hero'>
-          <div className='hero-bg min-h-[72svh] md:h-[90vh]' data-theme-image='public_home_hero_image' data-theme-image-label='Hero image'>
+
+          {heroCarouselImages && heroCarouselImages.length > 0 ? (
+            <Swiper
+              modules={[Pagination, Navigation]}
+              pagination={{ clickable: true }}
+              navigation
+              loop={true}
+              loopFillGroupWithBlank={false}
+              slidesPerView={1}
+              className='hero-carousel w-full'
+            >
+              {heroCarouselImages.map((image, index) => (
+                <SwiperSlide key={index}>
+                  <div className='hero-bg min-h-[72svh] md:h-[90vh]' style={{ backgroundImage: `url(${resolveAssetUrl(image.url)})`, backgroundSize: 'cover', backgroundPosition: 'center' }}>
+                    <div className='flex min-h-[72svh] w-full max-w-[640px] flex-col justify-center px-6 py-14 text-white md:ml-[10%] md:h-[90vh] md:px-0'>
+                      <h1 className='text-[32px] leading-tight md:text-[46px]' data-theme-edit='public_home_content.hero_title'>
+                        {homeContent.hero_title}
+                      </h1>
+                      <p className='w-full py-4 text-[14px] md:w-9/12' data-theme-edit='public_home_content.hero_body'>
+                        {homeContent.hero_body}
+                      </p>
+                      <button
+                        className='w-full bg-primary py-3 text-primary-foreground sm:w-auto sm:min-w-[220px] md:w-6/12'
+                        data-theme-edit='public_home_content.hero_cta_label'
+                      >
+                        {homeContent.hero_cta_label}
+                      </button>
+                    </div>
+                  </div>
+                </SwiperSlide>
+              ))}
+            </Swiper>
+          ) : (
+            <div className='hero-bg min-h-[72svh] md:h-[90vh]' data-theme-image='public_home_hero_image' data-theme-image-label='Hero image'>
+              <div className='flex min-h-[72svh] w-full max-w-[640px] flex-col justify-center px-6 py-14 text-white md:ml-[10%] md:h-[90vh] md:px-0'>
+                <h1 className='text-[32px] leading-tight md:text-[46px]' data-theme-edit='public_home_content.hero_title'>
+                  {homeContent.hero_title}
+                </h1>
+                <p className='w-full py-4 text-[14px] md:w-9/12' data-theme-edit='public_home_content.hero_body'>
+                  {homeContent.hero_body}
+                </p>
+                <button
+                  className='w-full bg-primary py-3 text-primary-foreground sm:w-auto sm:min-w-[220px] md:w-6/12'
+                  data-theme-edit='public_home_content.hero_cta_label'
+                >
+                  {homeContent.hero_cta_label}
+                </button>
+              </div>
+            </div>
+          )}
+          {/* <div className='hero-bg min-h-[72svh] md:h-[90vh]' data-theme-image='public_home_hero_image' data-theme-image-label='Hero image'>
             <div className='flex min-h-[72svh] w-full max-w-[640px] flex-col justify-center px-6 py-14 text-white md:ml-[10%] md:h-[90vh] md:px-0'>
               <h1 className='text-[32px] leading-tight md:text-[46px]' data-theme-edit='public_home_content.hero_title'>
                 {homeContent.hero_title}
@@ -580,7 +803,8 @@ function App() {
                 {homeContent.hero_cta_label}
               </button>
             </div>
-          </div>
+          </div> */}
+
         </section>
       ) : null}
 
@@ -618,6 +842,8 @@ function App() {
               }}
               pagination={{ clickable: true }}
               navigation={true}
+              loop={true}
+              loopFillGroupWithBlank={false}
               modules={[Pagination, Navigation]}
               className='mySwiper'
             >
@@ -653,24 +879,32 @@ function App() {
         </h1>
 
         <div className='mt-6 w-full md:hidden'>
-          <Swiper
-            slidesPerView={1}
-            spaceBetween={12}
-            pagination={{ clickable: true }}
-            navigation={true}
-            modules={[Pagination, Navigation]}
-            className='mySwiper '
-          >
-            {categories.map((category) => (
-              <SwiperSlide key={`cat-mobile-${category.id}`} className='py-4'>
-                <CategoryCard title={category.title} image={category.image} to={category.to} />
-              </SwiperSlide>
-            ))}
-          </Swiper>
-        </div>
+  <Swiper
+    slidesPerView={1}
+    spaceBetween={12}
+    pagination={{ clickable: true }}
+    navigation
+    modules={[Pagination, Navigation]}
+  >
+    {categories.map((category) => (
+      <SwiperSlide key={`cat-${category.id}`}>
+        <CategoryCard {...category} />
+      </SwiperSlide>
+    ))}
+  </Swiper>
+</div>
 
-        <div className='hidden md:flex flex-wrap justify-center gap-4 mt-10'>
+<div className='hidden md:flex flex-wrap justify-center gap-4 mt-10'>
+  {categories.map((category) => (
+    <CategoryCard key={category.id} {...category} />
+  ))}
+</div>
+        {/* <div className='hidden md:flex flex-wrap justify-center gap-4 mt-10'>
+
+          {[...categories].reverse().map((category) => (
+
           {categories.map((category) => (
+
             <CategoryCard
               key={`cat-desktop-${category.id}`}
               title={category.title}
@@ -678,7 +912,7 @@ function App() {
               to={category.to}
             />
           ))}
-        </div>
+        </div> */}
       </section>
       ) : null}
 
@@ -710,6 +944,9 @@ function App() {
             }}
             pagination={{ clickable: true }}
             navigation={true}
+
+                  loop={true}
+              loopFillGroupWithBlank={false}
             modules={[Pagination, Navigation]}
             className='mySwiper'
           >
@@ -760,29 +997,28 @@ function App() {
         </h2>
 
         <div className='w-[90vw] mx-auto md:hidden'>
-          <Swiper
-            slidesPerView={1}
-            spaceBetween={12}
-            pagination={{ clickable: true }}
-            navigation={true}
-            modules={[Pagination, Navigation]}
-            className='mySwiper'
-          >
-            {brandLogos.map((brand) => (
-              <SwiperSlide key={brand.alt}>
-                <div className='flex items-center justify-center py-6'>
-                  <img className='h-16 object-contain' src={brand.src} alt={brand.alt} />
-                </div>
-              </SwiperSlide>
-            ))}
-          </Swiper>
+  <Swiper
+    slidesPerView={1}
+    spaceBetween={12}
+    pagination={{ clickable: true }}
+    navigation
+    modules={[Pagination, Navigation]}
+  >
+    {displayedBrands.map((brand) => (
+      <SwiperSlide key={brand.alt}>
+        <div className="flex justify-center py-6">
+          <img src={brand.src} alt={brand.alt} className="h-16" />
         </div>
+      </SwiperSlide>
+    ))}
+  </Swiper>
+</div>
 
-        <div className='hidden md:flex w-[90vw] mx-auto flex-wrap items-center justify-between gap-y-6'>
-          {brandLogos.map((brand) => (
-            <img key={`brand-${brand.alt}`} className='h-16 object-contain' src={brand.src} alt={brand.alt} />
-          ))}
-        </div>
+<div className='hidden md:flex w-[90vw] mx-auto flex-wrap justify-between'>
+  {displayedBrands.map((brand) => (
+    <img key={brand.alt} src={brand.src} className="h-16" />
+  ))}
+</div>
       </section>
       ) : null}
 

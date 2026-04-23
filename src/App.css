@@ -21,6 +21,26 @@
   z-index: 1;
 }
 
+.hero-carousel {
+  width: 100%;
+}
+
+.hero-carousel .swiper-pagination {
+  bottom: 20px;
+}
+
+.hero-carousel .swiper-button-next,
+.hero-carousel .swiper-button-prev {
+  color: white;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.hero-carousel .swiper-button-next::after,
+.hero-carousel .swiper-button-prev::after {
+  font-size: 24px;
+}
+
 .mySwiper{
   padding:20px;
 }

@@ -25,6 +25,13 @@ export const adminApi = {
   createStore: (payload: unknown) => postJson('/api/stores', payload),
   updateStore: (id: string | number, payload: unknown) => putJson(`/api/stores/${id}`, payload),
   deleteStore: (id: string | number) => deleteJson(`/api/stores/${id}`),
+  uploadStoreImage: (storeId: string | number, imageUrl: string) =>
+    postJson(`/api/stores/${storeId}/image`, { image_url: imageUrl }),
+  uploadFile: (file: File) => {
+    const formData = new FormData();
+    formData.append('file', file);
+    return fetch('/api/upload', { method: 'POST', body: formData }).then((res) => res.json());
+  },
   getRoutingMode: () => getJson('/api/stores/routing/config'),
   setRoutingMode: (mode: 'region' | 'quantity') => putJson('/api/stores/routing/config', { mode }),
 
@@ -91,6 +98,12 @@ export const adminApi = {
   setGeneralSettings: (payload: unknown) => putJson('/api/system/general-settings', payload),
   getThemeSettings: () => getJson('/api/system/theme'),
   setThemeSettings: (payload: unknown) => putJson('/api/system/theme', payload),
+  getAthleteSettings: () => getJson('/api/system/athlete-settings'),
+  setAthleteSettings: (payload: unknown) => putJson('/api/system/athlete-settings', payload),
+  getBrandSettings: () => getJson('/api/system/brand-settings'),
+  setBrandSettings: (payload: unknown) => putJson('/api/system/brand-settings', payload),
+  getPerformanceSettings: () => getJson('/api/system/performance-settings'),
+  setPerformanceSettings: (payload: unknown) => putJson('/api/system/performance-settings', payload),
   listPublicThemes: () => getJson('/api/system/public-themes'),
   getPublicTheme: (id: string) => getJson(`/api/system/public-themes/${id}`),
   createPublicTheme: (payload: unknown) => postJson('/api/system/public-themes', payload),
