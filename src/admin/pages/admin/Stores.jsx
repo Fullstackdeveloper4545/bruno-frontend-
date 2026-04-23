@@ -33,6 +33,7 @@ const Stores = () => {
   const [editingId, setEditingId] = useState(null);
   const [routingMode, setRoutingMode] = useState("region");
   const [savingRoutingMode, setSavingRoutingMode] = useState(false);
+
   const [uploadingImageForStoreId, setUploadingImageForStoreId] = useState(null);
   const [selectedImageFile, setSelectedImageFile] = useState(null);
   const [error, setError] = useState("");
@@ -174,6 +175,7 @@ const Stores = () => {
       setSavingRoutingMode(false);
     }
   };
+
   const handleUploadStoreImage = async (storeId) => {
     if (!selectedImageFile) {
       setError("Por favor selecione uma imagem.");
@@ -262,85 +264,102 @@ const Stores = () => {
                 <TableHead>Prioridade</TableHead>
                 <TableHead>Morada</TableHead>
                 <TableHead>Imagem</TableHead>
+
                 <TableHead>Regiões</TableHead>
                 <TableHead>Ações</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {loading ? <TableRow>
-                  <TableCell colSpan={9} className="text-center text-sm text-muted-foreground">
-                    A carregar lojas...
-                  </TableCell>
-                </TableRow> : rows.length === 0 ? <TableRow>
-                  <TableCell colSpan={9} className="text-center text-sm text-muted-foreground">
-                    Ainda não existem lojas configuradas.
-                  </TableCell>
-                </TableRow> : rows.map((row) => {
-    const isActive = row.is_active !== false;
-    const isBusy = activeStoreActionId === row.id;
-    const isLastActive = isActive && activeStoreCount <= 1;
-    return <TableRow key={String(row.id)}>
-                      <TableCell>{row.id}</TableCell>
-                      <TableCell>{row.name}</TableCell>
-                      <TableCell>{isActive ? "Ativa" : "Inativa"}</TableCell>
-                      <TableCell>{row.region_district || "-"}</TableCell>
-                      <TableCell>{row.priority_level ?? "-"}</TableCell>
-                      <TableCell>{row.address || "-"}</TableCell>
-                      <TableCell>
-                        {row.image_url ? (
-                          <div className="flex items-center gap-2">
-                            <img src={row.image_url} alt={row.name} className="h-8 w-8 rounded object-cover" />
-                            <Button
-      size="sm"
-      className="!h-7 !rounded-md !bg-amber-600 !px-3 !text-white hover:!bg-amber-700 text-xs"
-      onClick={() => setUploadingImageForStoreId(row.id)}
-    >
-                              Trocar
-                            </Button>
-                          </div>
-                        ) : (
-                          <Button
-      size="sm"
-      className="!h-7 !rounded-md !bg-slate-500 !px-3 !text-white hover:!bg-slate-600 text-xs"
-      onClick={() => setUploadingImageForStoreId(row.id)}
-    >
-                            Upload
-                          </Button>
-                        )}
-                      </TableCell>
-                      <TableCell>{(row.regions || []).join(", ") || "-"}</TableCell>
-                      <TableCell className="flex gap-2">
-                        <Button
-      size="sm"
-      className="!h-9 !rounded-md !bg-[#6a8f97] !px-5 !text-white hover:!bg-[#5e838b]"
-      onClick={() => {
-        setEditingId(row.id);
-        setForm(toForm(row));
-        setSuccess("");
-        setError("");
-      }}
-    >
-                          Editar
-                        </Button>
-                        <Button
-      size="sm"
-      className="!h-9 !rounded-md !bg-zinc-500 !px-5 !text-white hover:!bg-zinc-600"
-      disabled={isBusy || isLastActive}
-      onClick={() => void handleToggleStoreStatus(row)}
-    >
-                          {isBusy ? "A guardar..." : isActive ? "Desativar" : "Ativar"}
-                        </Button>
-                        <ConfirmDeleteButton
-      triggerLabel="Apagar"
-      confirmLabel="Apagar"
-      entityName={`loja "${row.name}"`}
-      onConfirm={() => handleDeleteStore(row.id)}
-      disabled={!canDeleteStores}
-    />
-                      </TableCell>
-                    </TableRow>;
-  })}
-            </TableBody>
+  {loading ? (
+    <TableRow>
+      <TableCell colSpan={9} className="text-center text-sm text-muted-foreground">
+        A carregar lojas...
+      </TableCell>
+    </TableRow>
+  ) : rows.length === 0 ? (
+    <TableRow>
+      <TableCell colSpan={9} className="text-center text-sm text-muted-foreground">
+        Ainda não existem lojas configuradas.
+      </TableCell>
+    </TableRow>
+  ) : (
+    rows.map((row) => {
+      const isActive = row.is_active !== false;
+      const isBusy = activeStoreActionId === row.id;
+      const isLastActive = isActive && activeStoreCount <= 1;
+
+      return (
+        <TableRow key={String(row.id)}>
+          <TableCell>{row.id}</TableCell>
+          <TableCell>{row.name}</TableCell>
+          <TableCell>{isActive ? "Ativa" : "Inativa"}</TableCell>
+          <TableCell>{row.region_district || "-"}</TableCell>
+          <TableCell>{row.priority_level ?? "-"}</TableCell>
+          <TableCell>{row.address || "-"}</TableCell>
+
+          <TableCell>
+            {row.image_url ? (
+              <div className="flex items-center gap-2">
+                <img
+                  src={row.image_url}
+                  alt={row.name}
+                  className="h-8 w-8 rounded object-cover"
+                />
+                <Button
+                  size="sm"
+                  className="!h-7 !bg-amber-600 text-white"
+                  onClick={() => setUploadingImageForStoreId(row.id)}
+                >
+                  Trocar
+                </Button>
+              </div>
+            ) : (
+              <Button
+                size="sm"
+                className="!h-7 !bg-slate-500 text-white"
+                onClick={() => setUploadingImageForStoreId(row.id)}
+              >
+                Upload
+              </Button>
+            )}
+          </TableCell>
+
+          <TableCell>
+            {(row.regions || []).join(", ") || "-"}
+          </TableCell>
+
+          <TableCell className="flex gap-2">
+            <Button
+              size="sm"
+              onClick={() => {
+                setEditingId(row.id);
+                setForm(toForm(row));
+              }}
+            >
+              Editar
+            </Button>
+
+            <Button
+              size="sm"
+              disabled={isBusy || isLastActive}
+              onClick={() => handleToggleStoreStatus(row)}
+            >
+              {isBusy ? "A guardar..." : isActive ? "Desativar" : "Ativar"}
+            </Button>
+
+            <ConfirmDeleteButton
+              triggerLabel="Apagar"
+              confirmLabel="Apagar"
+              entityName={`loja "${row.name}"`}
+              onConfirm={() => handleDeleteStore(row.id)}
+              disabled={!canDeleteStores}
+            />
+          </TableCell>
+        </TableRow>
+      );
+    })
+  )}
+</TableBody>
           </Table>
           {!canDeleteStores ? <p className="mt-3 text-xs text-muted-foreground">
               Pelo menos uma loja deve permanecer configurada.
@@ -404,6 +423,7 @@ const Stores = () => {
         </CardContent>
       </Card>
 
+
       {uploadingImageForStoreId != null && (
         <Card className="rounded-2xl bg-zinc-100">
           <CardHeader>
@@ -449,6 +469,7 @@ const Stores = () => {
           </CardContent>
         </Card>
       )}
+
     </div>;
 };
 var stdin_default = Stores;

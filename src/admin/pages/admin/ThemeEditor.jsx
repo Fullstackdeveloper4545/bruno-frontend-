@@ -30,6 +30,7 @@ function settingsFromDraft(draft) {
     public_radius: String(safeDraft.public_radius || "0.5rem").trim(),
     public_home_hero_image: String(safeDraft.public_home_hero_image || "").trim(),
     public_home_hero_carousel_images: Array.isArray(safeDraft.public_home_hero_carousel_images) ? safeDraft.public_home_hero_carousel_images : [],
+
     public_home_promo_image: String(safeDraft.public_home_promo_image || "").trim(),
     public_category_card_bg_image: String(safeDraft.public_category_card_bg_image || "").trim(),
     public_home_hero_overlay_color: String(safeDraft.public_home_hero_overlay_color || "#000000").trim(),
@@ -980,13 +981,11 @@ export default function ThemeEditor() {
                   </select>
                 </div>
               </div>
-
               <CarouselManager
                 images={draft.public_home_hero_carousel_images}
                 onImagesChange={(images) => setDraft((p) => ({ ...p, public_home_hero_carousel_images: images }))}
                 disabled={saving}
-              />
-
+        />
               <div className="rounded-lg border border-border/60 bg-background/60 p-3 text-sm text-muted-foreground">
                 <p className="font-medium text-foreground">Edit images in the preview</p>
                 <p className="mt-1">

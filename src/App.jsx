@@ -391,6 +391,7 @@ function App() {
     category_limits: {},
     sort_by: 'sales',
   })
+
   const publicLayoutRef = useRef('classic')
 
   useEffect(() => {
@@ -410,6 +411,7 @@ function App() {
         setHomeSections(normalizeHomeSections(settings?.public_home_sections, layout))
         setHomeContent(normalizeHomeContent(settings?.public_home_content))
         setHomeCustomSections(normalizeHomeCustomSections(settings?.public_home_custom_sections))
+
         setHeroCarouselImages(Array.isArray(settings?.public_home_hero_carousel_images) ? settings.public_home_hero_carousel_images : [])
       } catch (error) {
         if (!active || error?.name === 'AbortError') return
@@ -603,7 +605,7 @@ function App() {
 
   const athleteProducts = useMemo(() => {
     const source = homeProducts.length > 0 ? homeProducts : fallbackProducts
-    
+
     // If specific categories are selected with limits, apply per-category filtering
     if (athleteSettings.category_ids && athleteSettings.category_ids.length > 0) {
       const categoryLimits = athleteSettings.category_limits || {}
@@ -638,39 +640,33 @@ function App() {
 
 
   const performanceProducts = useMemo(() => {
-    const source = homeProducts.length > 0 ? homeProducts : fallbackProducts
-    
-    // If specific categories are selected with limits, apply per-category filtering
-    if (performanceSettings.category_ids && performanceSettings.category_ids.length > 0) {
-      const categoryLimits = performanceSettings.category_limits || {}
-      const categoryIdSet = new Set(performanceSettings.category_ids)
-      const result = []
-      const categoryCount = {}
-      
-      // Iterate through products and collect up to the limit for each category
-      for (const product of source) {
-        const catId = String(product?.categoryId || '')
-        
-        // Only include products from selected categories
-        if (!categoryIdSet.has(catId)) continue
-        
-        // Check if we've reached the limit for this category
-        const limit = Number(categoryLimits[catId]) || 5
-        if ((categoryCount[catId] || 0) >= limit) continue
-        
-        result.push(product)
-        categoryCount[catId] = (categoryCount[catId] || 0) + 1
-      }
-      
-      // If we got some results, use them; otherwise fallback to all products
-      if (result.length > 0) {
-        return result.slice(0, performanceSettings.product_count)
-      }
+  const source = homeProducts.length > 0 ? homeProducts : fallbackProducts;
+
+  if (performanceSettings.category_ids?.length > 0) {
+    const categoryLimits = performanceSettings.category_limits || {};
+    const categoryIdSet = new Set(performanceSettings.category_ids);
+    const result = [];
+    const categoryCount = {};
+
+    for (const product of source) {
+      const catId = String(product?.categoryId || "");
+
+      if (!categoryIdSet.has(catId)) continue;
+
+      const limit = Number(categoryLimits[catId]) || 5;
+      if ((categoryCount[catId] || 0) >= limit) continue;
+
+      result.push(product);
+      categoryCount[catId] = (categoryCount[catId] || 0) + 1;
     }
-    
-    // Default behavior: no category filtering, just limit by product_count
-    return source.slice(0, performanceSettings.product_count)
-  }, [homeProducts, performanceSettings])
+
+    if (result.length > 0) {
+      return result.slice(0, performanceSettings.product_count);
+    }
+  }
+
+  return source.slice(0, performanceSettings.product_count);
+}, [homeProducts, performanceSettings]);
 
   const categories = useMemo(() => {
     const source = homeCategories.length > 0 ? homeCategories : fallbackCategories
@@ -681,6 +677,7 @@ function App() {
     const source = homeStores.length > 0 ? homeStores : fallbackStores
     return source.slice(0, 3)
   }, [homeStores])
+
 
   const displayedBrands = useMemo(() => {
     if (!brandSettings.brand_ids || brandSettings.brand_ids.length === 0) {
@@ -741,6 +738,7 @@ function App() {
 
       {isSectionEnabled('hero') ? (
         <section className='bg-white' style={{ order: sectionOrder.hero }} data-theme-layout-section='hero'>
+
           {heroCarouselImages && heroCarouselImages.length > 0 ? (
             <Swiper
               modules={[Pagination, Navigation]}
@@ -790,6 +788,23 @@ function App() {
               </div>
             </div>
           )}
+          {/* <div className='hero-bg min-h-[72svh] md:h-[90vh]' data-theme-image='public_home_hero_image' data-theme-image-label='Hero image'>
+            <div className='flex min-h-[72svh] w-full max-w-[640px] flex-col justify-center px-6 py-14 text-white md:ml-[10%] md:h-[90vh] md:px-0'>
+              <h1 className='text-[32px] leading-tight md:text-[46px]' data-theme-edit='public_home_content.hero_title'>
+                {homeContent.hero_title}
+              </h1>
+              <p className='w-full py-4 text-[14px] md:w-9/12' data-theme-edit='public_home_content.hero_body'>
+                {homeContent.hero_body}
+              </p>
+              <button
+                className='w-full bg-primary py-3 text-primary-foreground sm:w-auto sm:min-w-[220px] md:w-6/12'
+                data-theme-edit='public_home_content.hero_cta_label'
+              >
+                {homeContent.hero_cta_label}
+              </button>
+            </div>
+          </div> */}
+
         </section>
       ) : null}
 
@@ -864,26 +879,32 @@ function App() {
         </h1>
 
         <div className='mt-6 w-full md:hidden'>
-          <Swiper
-            slidesPerView={1}
-            spaceBetween={12}
-            pagination={{ clickable: true }}
-            navigation={true}
-                  loop={true}
-              loopFillGroupWithBlank={false}
-            modules={[Pagination, Navigation]}
-            className='mySwiper '
-          >
-            {[...categories].reverse().map((category) => (
-              <SwiperSlide key={`cat-mobile-${category.id}`} className='py-4'>
-                <CategoryCard title={category.title} image={category.image} to={category.to} />
-              </SwiperSlide>
-            ))}
-          </Swiper>
-        </div>
+  <Swiper
+    slidesPerView={1}
+    spaceBetween={12}
+    pagination={{ clickable: true }}
+    navigation
+    modules={[Pagination, Navigation]}
+  >
+    {categories.map((category) => (
+      <SwiperSlide key={`cat-${category.id}`}>
+        <CategoryCard {...category} />
+      </SwiperSlide>
+    ))}
+  </Swiper>
+</div>
 
-        <div className='hidden md:flex flex-wrap justify-center gap-4 mt-10'>
+<div className='hidden md:flex flex-wrap justify-center gap-4 mt-10'>
+  {categories.map((category) => (
+    <CategoryCard key={category.id} {...category} />
+  ))}
+</div>
+        {/* <div className='hidden md:flex flex-wrap justify-center gap-4 mt-10'>
+
           {[...categories].reverse().map((category) => (
+
+          {categories.map((category) => (
+
             <CategoryCard
               key={`cat-desktop-${category.id}`}
               title={category.title}
@@ -891,7 +912,7 @@ function App() {
               to={category.to}
             />
           ))}
-        </div>
+        </div> */}
       </section>
       ) : null}
 
@@ -923,6 +944,7 @@ function App() {
             }}
             pagination={{ clickable: true }}
             navigation={true}
+
                   loop={true}
               loopFillGroupWithBlank={false}
             modules={[Pagination, Navigation]}
@@ -975,29 +997,28 @@ function App() {
         </h2>
 
         <div className='w-[90vw] mx-auto md:hidden'>
-          <Swiper
-            slidesPerView={1}
-            spaceBetween={12}
-            pagination={{ clickable: true }}
-            navigation={true}
-            modules={[Pagination, Navigation]}
-            className='mySwiper'
-          >
-            {displayedBrands.map((brand) => (
-              <SwiperSlide key={brand.alt}>
-                <div className='flex items-center justify-center py-6'>
-                  <img className='h-16 object-contain' src={brand.src} alt={brand.alt} />
-                </div>
-              </SwiperSlide>
-            ))}
-          </Swiper>
+  <Swiper
+    slidesPerView={1}
+    spaceBetween={12}
+    pagination={{ clickable: true }}
+    navigation
+    modules={[Pagination, Navigation]}
+  >
+    {displayedBrands.map((brand) => (
+      <SwiperSlide key={brand.alt}>
+        <div className="flex justify-center py-6">
+          <img src={brand.src} alt={brand.alt} className="h-16" />
         </div>
+      </SwiperSlide>
+    ))}
+  </Swiper>
+</div>
 
-        <div className='hidden md:flex w-[90vw] mx-auto flex-wrap items-center justify-between gap-y-6'>
-          {displayedBrands.map((brand) => (
-            <img key={`brand-${brand.alt}`} className='h-16 object-contain' src={brand.src} alt={brand.alt} />
-          ))}
-        </div>
+<div className='hidden md:flex w-[90vw] mx-auto flex-wrap justify-between'>
+  {displayedBrands.map((brand) => (
+    <img key={brand.alt} src={brand.src} className="h-16" />
+  ))}
+</div>
       </section>
       ) : null}
 
