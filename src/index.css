@@ -1,0 +1,247 @@
+@import "tailwindcss";
+@source "./**/*.{js,jsx,ts,tsx}";
+
+@theme {
+  --font-sans: "Helvetica", "Helvetica Neue", Arial, sans-serif;
+  --font-display: "Helvetica", "Helvetica Neue", Arial, sans-serif;
+
+  --color-border: hsl(var(--border));
+  --color-input: hsl(var(--input));
+  --color-ring: hsl(var(--ring));
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-destructive: hsl(var(--destructive));
+  --color-destructive-foreground: hsl(var(--destructive-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-success: hsl(var(--success));
+  --color-success-foreground: hsl(var(--success-foreground));
+  --color-popover: hsl(var(--popover));
+  --color-popover-foreground: hsl(var(--popover-foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+
+  --color-sidebar: hsl(var(--sidebar-background));
+  --color-sidebar-foreground: hsl(var(--sidebar-foreground));
+  --color-sidebar-primary: hsl(var(--sidebar-primary));
+  --color-sidebar-primary-foreground: hsl(var(--sidebar-primary-foreground));
+  --color-sidebar-accent: hsl(var(--sidebar-accent));
+  --color-sidebar-accent-foreground: hsl(var(--sidebar-accent-foreground));
+  --color-sidebar-border: hsl(var(--sidebar-border));
+  --color-sidebar-ring: hsl(var(--sidebar-ring));
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+
+  --animate-accordion-down: accordion-down 0.2s ease-out;
+  --animate-accordion-up: accordion-up 0.2s ease-out;
+  --animate-fade-in: fade-in 0.5s ease-out forwards;
+  --animate-slide-in: slide-in 0.3s ease-out;
+}
+
+@keyframes accordion-down {
+  from {
+    height: 0;
+  }
+  to {
+    height: var(--radix-accordion-content-height);
+  }
+}
+
+@keyframes accordion-up {
+  from {
+    height: var(--radix-accordion-content-height);
+  }
+  to {
+    height: 0;
+  }
+}
+
+@keyframes fade-in {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-in {
+  from {
+    transform: translateX(-100%);
+  }
+  to {
+    transform: translateX(0);
+  }
+}
+
+:root {
+  --background: 190 15% 95%;
+  --foreground: 200 28% 18%;
+
+  --card: 0 0% 100%;
+  --card-foreground: 200 28% 18%;
+
+  --popover: 0 0% 100%;
+  --popover-foreground: 200 28% 18%;
+
+  --primary: 192 23% 46%;
+  --primary-foreground: 0 0% 98%;
+
+  --secondary: 190 16% 90%;
+  --secondary-foreground: 200 28% 18%;
+
+  --muted: 192 12% 82%;
+  --muted-foreground: 195 10% 38%;
+
+  --accent: 136 45% 46%;
+  --accent-foreground: 0 0% 100%;
+
+  --destructive: 0 68% 52%;
+  --destructive-foreground: 0 0% 98%;
+
+  --border: 190 12% 82%;
+  --input: 190 12% 82%;
+  --ring: 192 23% 46%;
+
+  --radius: 0.5rem;
+
+  --success: 136 45% 46%;
+  --success-foreground: 0 0% 100%;
+
+  --sidebar-background: 190 19% 52%; /* #6C939B */
+  --sidebar-foreground: 180 33% 96%;
+  --sidebar-primary: 193 27% 42%;
+  --sidebar-primary-foreground: 180 33% 96%;
+  --sidebar-accent: 193 20% 55%;
+  --sidebar-accent-foreground: 180 33% 98%;
+  --sidebar-border: 193 18% 54%;
+  --sidebar-ring: 136 45% 46%;
+
+  --black: #000000;
+  --white: #ffffff;
+
+  --blue-1-light: #f0f4f5;
+  --blue-1-light-hover: #e9eff0;
+  --blue-1-light-active: #d1dee0;
+  --blue-1: #6c939b;
+  --blue-1-hover: #61848c;
+  --blue-1-active: #56767c;
+  --blue-1-dark: #516e74;
+  --blue-1-dark-hover: #41585d;
+  --blue-1-dark-active: #314246;
+  --blue-1-darker: #263336;
+
+  --grey-light: #e8e8e8;
+  --grey-light-hover: #dddddd;
+  --grey-light-active: #b8b8b8;
+  --grey: #191919;
+  --grey-hover: #171717;
+  --grey-active: #141414;
+  --grey-dark: #131313;
+  --grey-dark-hover: #0f0f0f;
+  --grey-dark-active: #0b0b0b;
+  --grey-darker: #090909;
+
+  --blue-2-light: #e6f2f5;
+  --blue-2-light-hover: #d9ecef;
+  --blue-2-light-active: #b1d8df;
+  --blue-2: #028198;
+  --blue-2-hover: #027489;
+  --blue-2-active: #02677a;
+  --blue-2-dark: #026172;
+  --blue-2-dark-hover: #014d5b;
+  --blue-2-dark-active: #013a44;
+  --blue-2-darker: #012d35;
+
+  --blue-3-light: #e9eaeb;
+  --blue-3-light-hover: #dee0e0;
+  --blue-3-light-active: #bfbfbf;
+  --blue-3: #243032;
+  --blue-3-hover: #202b2d;
+  --blue-3-active: #1d2628;
+  --blue-3-dark: #1b2426;
+  --blue-3-dark-hover: #161d1e;
+  --blue-3-dark-active: #101616;
+  --blue-3-darker: #0d1112;
+}
+
+.dark {
+  --background: 220 40% 6%;
+  --foreground: 210 40% 98%;
+  --card: 220 40% 10%;
+  --card-foreground: 210 40% 98%;
+  --popover: 220 40% 10%;
+  --popover-foreground: 210 40% 98%;
+  --primary: 210 40% 98%;
+  --primary-foreground: 220 60% 22%;
+  --secondary: 217 33% 17%;
+  --secondary-foreground: 210 40% 98%;
+  --muted: 217 33% 17%;
+  --muted-foreground: 215 20% 65%;
+  --accent: 38 92% 50%;
+  --accent-foreground: 0 0% 100%;
+  --destructive: 0 63% 31%;
+  --destructive-foreground: 210 40% 98%;
+  --border: 217 33% 17%;
+  --input: 217 33% 17%;
+  --ring: 212 27% 84%;
+  --sidebar-background: 240 5.9% 10%;
+  --sidebar-foreground: 240 4.8% 95.9%;
+  --sidebar-primary: 224.3 76.3% 48%;
+  --sidebar-primary-foreground: 0 0% 100%;
+  --sidebar-accent: 240 3.7% 15.9%;
+  --sidebar-accent-foreground: 240 4.8% 95.9%;
+  --sidebar-border: 240 3.7% 15.9%;
+  --sidebar-ring: 217.2 91.2% 59.8%;
+}
+
+/* * {
+  /* border-color: hsl(var(--border)); 
+} */
+
+body {
+  margin: 0;
+  background-color: var(--white);
+  color: hsl(var(--foreground));
+  font-family: "Space Grotesk", "Helvetica Neue", Helvetica, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+#root {
+  min-height: 100svh;
+}
+
+img,
+video,
+canvas,
+svg {
+  display: block;
+  max-width: 100%;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+

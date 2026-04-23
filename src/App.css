@@ -1,0 +1,108 @@
+.hero-bg{
+  position: relative;
+  background-image: var(--hero-bg-image, url("./assets/hero-bg.jpg"));
+  background-size: 100% 100%;
+  background-position: center; 
+
+  background-repeat: no-repeat;
+
+}
+
+.hero-bg::before{
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--hero-overlay-color, transparent);
+  pointer-events: none;
+}
+
+.hero-bg > *{
+  position: relative;
+  z-index: 1;
+}
+
+.hero-carousel {
+  width: 100%;
+}
+
+.hero-carousel .swiper-pagination {
+  bottom: 20px;
+}
+
+.hero-carousel .swiper-button-next,
+.hero-carousel .swiper-button-prev {
+  color: white;
+  top: 50%;
+  transform: translateY(-50%);
+}
+
+.hero-carousel .swiper-button-next::after,
+.hero-carousel .swiper-button-prev::after {
+  font-size: 24px;
+}
+
+.mySwiper{
+  padding:20px;
+}
+
+.ana-dias-swiper{
+  padding:50px;
+
+}
+
+
+/* .mySwiper .swiper-pagination{
+  bottom: -12px;
+} */
+
+.mySwiper .swiper-button-next,
+.mySwiper .swiper-button-prev{
+  color: #000;
+}
+
+.ana-dias-swiper .swiper-button-next,
+.ana-dias-swiper .swiper-button-prev{
+  color: #000;
+}
+
+.category-card-bg{
+  position: relative;
+  background-image: var(--category-card-bg-image, url("./assets/sneakers.jpg"));
+  background-size: 100% 100%;
+  background-position: center; 
+  background-repeat: no-repeat;
+}
+
+.category-card-bg::before{
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--category-card-overlay-color, transparent);
+  pointer-events: none;
+}
+
+.category-card-bg > *{
+  position: relative;
+  z-index: 1;
+}
+
+.promo-bg{
+  position: relative;
+  background-image: var(--promo-bg-image, url("./assets/sneakers-1.jpg"));
+  background-size: cover;
+  background-position: 75% 65%;
+  background-repeat: no-repeat;
+}
+
+.promo-bg::before{
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: var(--promo-overlay-color, transparent);
+  pointer-events: none;
+}
+
+.promo-bg > *{
+  position: relative;
+  z-index: 1;
+}
