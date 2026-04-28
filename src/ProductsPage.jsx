@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import { Link, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { ChevronDown } from 'lucide-react'
 import Navbar from './components/layout/Navbar'
 import Footer from './components/layout/Footer'
@@ -99,6 +99,35 @@ function extractColor(attributes) {
   return 'Cor disponivel'
 }
 
+function extractGenderValues(variants) {
+  if (!Array.isArray(variants)) return []
+  const values = []
+  for (const variant of variants) {
+    const attrs = parseAttributes(variant?.attribute_values)
+    for (const [key, value] of Object.entries(attrs)) {
+      const safeKey = String(key || '').toLowerCase()
+      if (!['gender', 'genero', 'sexo'].includes(safeKey)) continue
+      if (value == null) continue
+      values.push(String(value))
+    }
+  }
+  return values
+}
+
+function genderMatches(values, selectedGender) {
+  const chosen = normalizeText(selectedGender)
+  if (!chosen) return true
+  const tokens = chosen === 'male'
+    ? ['male', 'homem', 'man', 'men']
+    : chosen === 'female'
+      ? ['female', 'mulher', 'woman', 'women']
+      : ['unisex', 'unisexo']
+  return values.some((value) => {
+    const normalized = normalizeText(value)
+    return tokens.some((token) => normalized.includes(token))
+  })
+}
+
 function normalizeText(value) {
   return String(value || '')
     .normalize('NFKD')
@@ -179,6 +208,7 @@ function mapProductToCard(product, index) {
     stockLabel: null,
     variantOptions,
     imageOptions,
+    genderValues: extractGenderValues(variants),
   }
 }
 
@@ -194,12 +224,15 @@ function buildCategoryLink(category, index) {
 
 function ProductsPage() {
   const [searchParams] = useSearchParams()
+  const navigate = useNavigate()
   const [products, setProducts] = useState([])
   const [categories, setCategories] = useState([])
   const [error, setError] = useState('')
   const [selectedColor, setSelectedColor] = useState(null)
   const selectedCategoryId = String(searchParams.get('categoryId') || '').trim()
   const selectedCategoryName = String(searchParams.get('categoryName') || '').trim()
+  const searchQuery = String(searchParams.get('q') || '').trim()
+  const selectedGender = String(searchParams.get('gender') || '').trim()
 
   useEffect(() => {
     let active = true
@@ -269,9 +302,27 @@ function ProductsPage() {
       ? baseProducts.filter((product) => String(product?.categoryId || '').trim() === selectedCategoryId)
       : baseProducts
 
-    if (!selectedColor) return filteredByCategory
+    const normalizedQuery = normalizeText(searchQuery)
+    const filteredBySearch = normalizedQuery
+      ? filteredByCategory.filter((product) => {
+          const searchable = [
+            product?.title,
+            product?.color,
+            product?.categoryName,
+          ]
+            .filter(Boolean)
+            .join(' ')
+          return normalizeText(searchable).includes(normalizedQuery)
+        })
+      : filteredByCategory
 
-    return filteredByCategory
+    const filteredByGender = selectedGender
+      ? filteredBySearch.filter((product) => genderMatches(product?.genderValues || [], selectedGender))
+      : filteredBySearch
+
+    if (!selectedColor) return filteredByGender
+
+    return filteredByGender
       .map((product) => {
         const matchedVariant = Array.isArray(product?.variantOptions)
           ? product.variantOptions.find((variant) => colorMatches(variant.color, selectedColor))
@@ -300,7 +351,7 @@ function ProductsPage() {
         return null
       })
       .filter(Boolean)
-  }, [baseProducts, selectedCategoryId, selectedColor])
+  }, [baseProducts, selectedCategoryId, selectedColor, searchQuery, selectedGender])
 
   const resolvedCategoryName = useMemo(() => {
     if (selectedCategoryId) {
@@ -352,6 +403,22 @@ function ProductsPage() {
     setSelectedColor((prev) => (prev === name ? null : name))
   }
 
+  const buildFiltersUrl = ({ categoryId, categoryName, gender }) => {
+    const params = new URLSearchParams()
+    if (categoryId) params.set('categoryId', categoryId)
+    if (categoryName) params.set('categoryName', categoryName)
+    if (searchQuery) params.set('q', searchQuery)
+    if (gender) params.set('gender', gender)
+    const query = params.toString()
+    return query ? `/products?${query}` : '/products'
+  }
+
+  const genderOptions = [
+    { value: 'female', label: 'Mulher' },
+    { value: 'male', label: 'Homem' },
+    { value: 'unisex', label: 'Unisexo' },
+  ]
+
   return (
     <>
       <Navbar />
@@ -383,27 +450,64 @@ function ProductsPage() {
 
             <details open className='border-b border-black/10 py-4'>
               <summary className='flex cursor-pointer items-center justify-between text-[14px] font-semibold'>
-                Categorias
+                Categoria
                 <ChevronDown size={16} />
               </summary>
-              <div className='mt-4 flex flex-col gap-3 text-[13px]'>
-                <Link
-                  to='/products'
-                  className={`rounded-full px-3 py-2 transition ${!selectedCategoryId ? 'bg-primary text-primary-foreground' : 'bg-black/[0.04] hover:bg-black/[0.07]'}`}
-                >
-                  Todos os produtos
-                </Link>
-                {categories.map((category) => (
-                  <Link
-                    key={category.id}
-                    to={category.to}
-                    className={`rounded-full px-3 py-2 transition ${
-                      selectedCategoryId === category.id ? 'bg-primary text-primary-foreground' : 'bg-black/[0.04] hover:bg-black/[0.07]'
-                    }`}
-                  >
-                    {category.name}
-                  </Link>
-                ))}
+              <div className='mt-4 flex flex-col gap-4 text-[14px]'>
+                <label className='flex cursor-pointer items-center gap-4'>
+                  <input
+                    type='checkbox'
+                    checked={!selectedCategoryId}
+                    onChange={() => navigate(buildFiltersUrl({ categoryId: '', categoryName: '', gender: selectedGender }))}
+                    className='h-7 w-7 appearance-none rounded-md border border-black/40 bg-white checked:bg-black/10'
+                  />
+                  <span className='text-black'>Todos os produtos</span>
+                </label>
+                {categories.map((category) => {
+                  const isActive = selectedCategoryId === category.id
+                  return (
+                    <label key={category.id} className='flex cursor-pointer items-center gap-4'>
+                      <input
+                        type='checkbox'
+                        checked={isActive}
+                        onChange={() => navigate(buildFiltersUrl({ categoryId: category.id, categoryName: category.name, gender: selectedGender }))}
+                        className='h-7 w-7 appearance-none rounded-md border border-black/40 bg-white checked:bg-black/10'
+                      />
+                      <span className='text-black'>{category.name}</span>
+                    </label>
+                  )
+                })}
+              </div>
+            </details>
+
+            <details open className='border-b border-black/10 py-4'>
+              <summary className='flex cursor-pointer items-center justify-between text-[14px] font-semibold'>
+                Genero
+                <ChevronDown size={16} />
+              </summary>
+              <div className='mt-4 flex flex-col gap-4 text-[14px]'>
+                {genderOptions.map((option) => {
+                  const isActive = selectedGender === option.value
+                  return (
+                    <label key={option.value} className='flex cursor-pointer items-center gap-4'>
+                      <input
+                        type='checkbox'
+                        checked={isActive}
+                        onChange={() =>
+                          navigate(
+                            buildFiltersUrl({
+                              categoryId: selectedCategoryId,
+                              categoryName: selectedCategoryName || resolvedCategoryName,
+                              gender: isActive ? '' : option.value,
+                            })
+                          )
+                        }
+                        className='h-7 w-7 appearance-none rounded-md border border-black/40 bg-white checked:bg-black/10'
+                      />
+                      <span className='text-black'>{option.label}</span>
+                    </label>
+                  )
+                })}
               </div>
             </details>
 

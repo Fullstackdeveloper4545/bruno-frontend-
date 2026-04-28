@@ -343,6 +343,20 @@ function buildProductCard(product, index) {
 function buildCategoryCard(category, index) {
   const categoryId = category?.id != null ? String(category.id) : `category-${index}`
   const categoryTitle = category?.name_pt || category?.name_es || category?.slug || 'Categoria'
+  const rawGenderOptions = Array.isArray(category?.gender_options) ? category.gender_options : []
+  const normalizedGenders = rawGenderOptions
+    .map((entry) => String(entry || '').trim().toLowerCase())
+    .filter(Boolean)
+    .filter((entry) => !['none', 'nenhum', 'other'].includes(entry))
+    .map((entry) => (['male', 'homem', 'men', 'man'].includes(entry) ? 'male' : ['female', 'mulher', 'women', 'woman'].includes(entry) ? 'female' : null))
+    .filter(Boolean)
+  const uniqueGenders = Array.from(new Set(normalizedGenders))
+  const genderButtons = uniqueGenders.map((gender) => ({
+    label: gender === 'male' ? 'HOMEM' : 'MULHER',
+    to: `/products?categoryId=${encodeURIComponent(categoryId)}&categoryName=${encodeURIComponent(
+      categoryTitle
+    )}&gender=${encodeURIComponent(gender)}`,
+  }))
   return {
     id: categoryId,
     title: categoryTitle,
@@ -350,6 +364,7 @@ function buildCategoryCard(category, index) {
     to: `/products?categoryId=${encodeURIComponent(categoryId)}&categoryName=${encodeURIComponent(
       categoryTitle
     )}`,
+    buttons: genderButtons,
   }
 }
 
